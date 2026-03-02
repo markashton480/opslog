@@ -5,7 +5,8 @@ WORKDIR /app
 RUN pip install --no-cache-dir uv
 
 COPY api/pyproject.toml .
-RUN uv pip install --system -r pyproject.toml && uv pip install --system -e ".[dev]"
+RUN uv pip install --system -r pyproject.toml && \
+    uv pip install --system pytest pytest-asyncio httpx
 
 COPY api/ app/
 

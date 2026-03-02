@@ -9,7 +9,7 @@ down:
 test: test-api test-dash
 
 test-api:
-	docker compose exec api pytest
+	docker compose run --rm api pytest
 
 test-dash:
 	docker compose run --rm dashboard npm test
@@ -19,11 +19,11 @@ install-deps:
 	cd dashboard && npm install
 
 lint:
-	docker compose exec api ruff check .
+	docker compose run --rm api ruff check .
 	docker compose run --rm dashboard npm run lint
 
 format:
-	docker compose exec api ruff format .
+	docker compose run --rm api ruff format .
 	docker compose run --rm dashboard npm run format
 
 migrate:
