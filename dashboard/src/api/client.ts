@@ -37,7 +37,18 @@ async function requestList<T>(
   path: string,
   options?: RequestInit
 ): Promise<ListResponse<T>> {
-  return request<ListResponse<T>>(path, options) as Promise<ListResponse<T>>;
+  const res = await fetch(`${BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${TOKEN}`,
+      "Content-Type": "application/json",
+      ...options?.headers,
+    },
+  });
+  if (!res.ok) {
+    throw new Error(`API error: ${res.status} ${res.statusText}`);
+  }
+  return res.json() as Promise<ListResponse<T>>;
 }
 
 export const api = {
