@@ -1,4 +1,4 @@
-.PHONY: dev down test test-api test-dash lint format migrate seed tokens logs psql
+.PHONY: dev down test test-api test-dash lint format migrate seed tokens logs psql install-deps
 
 dev:
 	docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
@@ -9,16 +9,22 @@ down:
 test: test-api test-dash
 
 test-api:
-	cd api && pytest
+	docker compose exec api pytest
 
 test-dash:
-	cd dashboard && npm test
+	docker compose run --rm dashboard npm test
+
+install-deps:
+	cd api && pip install -e ".[dev]"
+	cd dashboard && npm install
 
 lint:
-	cd api && ruff check . && cd ../dashboard && npm run lint
+	docker compose exec api ruff check .
+	docker compose run --rm dashboard npm run lint
 
 format:
-	cd api && ruff format . && cd ../dashboard && npm run format
+	docker compose exec api ruff format .
+	docker compose run --rm dashboard npm run format
 
 migrate:
 	docker compose exec api python scripts/migrate.py
