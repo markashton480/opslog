@@ -38,8 +38,6 @@ services:
     build:
       context: .
       dockerfile: dashboard/Dockerfile
-    ports:
-      - "8601:8601"
     depends_on:
       - api
     networks:
