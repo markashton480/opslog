@@ -3,7 +3,7 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 
 COPY dashboard/package*.json ./
-RUN npm ci
+RUN npm install
 
 COPY dashboard/ .
 RUN npm run build
@@ -11,7 +11,7 @@ RUN npm run build
 FROM caddy:2-alpine
 
 COPY --from=builder /app/dist /var/www/html
-COPY Caddyfile /etc/caddy/Caddyfile
+COPY dashboard/Caddyfile /etc/caddy/Caddyfile
 
 EXPOSE 8601
 

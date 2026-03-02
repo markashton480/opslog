@@ -5,7 +5,7 @@ WORKDIR /app
 RUN pip install --no-cache-dir uv
 
 COPY api/pyproject.toml .
-RUN uv pip install --system -r api/pyproject.toml
+RUN uv pip install --system -r pyproject.toml
 
 COPY api/ app/
 
