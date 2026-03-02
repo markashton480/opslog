@@ -9,10 +9,10 @@ down:
 test: test-api test-dash
 
 test-api:
-	docker compose run --rm api pytest
+	docker compose run --rm -e PYTHONPATH=/app/app api pytest /app/app/tests
 
 test-dash:
-	docker compose run --rm dashboard npm test
+	docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm dashboard npm test
 
 install-deps:
 	cd api && pip install -e ".[dev]"

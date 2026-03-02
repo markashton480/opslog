@@ -1,10 +1,6 @@
 version: "3.8"
 
 services:
-  postgres:
-    ports:
-      - "5432:5432"
-
   api:
     volumes:
       - ./api:/app
@@ -16,6 +12,7 @@ services:
       dockerfile: Dockerfile.dev
     volumes:
       - ./dashboard/src:/app/src
+      - ./dashboard/tests:/app/tests
       - ./dashboard/index.html:/app/index.html
     ports:
       - "8601:5173"
