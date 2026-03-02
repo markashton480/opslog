@@ -1,0 +1,10 @@
+:8601 {
+	root * /var/www/html
+	try_files {path} /index.html
+	
+ encode {
+		gzip
+	}
+	
+ respond /health 200
+}

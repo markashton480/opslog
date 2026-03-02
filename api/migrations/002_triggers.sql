@@ -1,0 +1,2 @@
+-- Triggers migration
+-- Placeholder for milestone 1

@@ -1,0 +1,2 @@
+-- Seed data migration
+-- Placeholder for milestone 1
