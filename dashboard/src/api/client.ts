@@ -1,83 +1,131 @@
-import type { Event, Issue, Server, Briefing } from "./types";
+import type {
+  ApiListResponse,
+  ApiResponse,
+  Briefing,
+  CategoriesPayload,
+  Event,
+  Health,
+  Issue,
+  IssueDetail,
+  Server,
+} from "./types";
 
 const BASE_URL = import.meta.env.VITE_OPSLOG_API_URL || "/api/v1";
 const TOKEN = import.meta.env.VITE_OPSLOG_TOKEN || "";
 
-interface ApiResponse<T> {
-  data: T;
-  warnings: string[];
-}
+export type QueryValue = string | number | boolean | null | undefined;
+export type QueryParams = Record<string, QueryValue>;
 
-interface ListResponse<T> {
-  data: T[];
-  next_cursor: string | null;
-  has_more: boolean;
-  warnings: string[];
-}
+export class ApiError extends Error {
+  status: number;
+  payload: unknown;
 
-async function request<T>(
-  path: string,
-  options?: RequestInit
-): Promise<ApiResponse<T>> {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      Authorization: `Bearer ${TOKEN}`,
-      "Content-Type": "application/json",
-      ...options?.headers,
-    },
-  });
-  if (!res.ok) {
-    throw new Error(`API error: ${res.status} ${res.statusText}`);
+  constructor(message: string, status: number, payload: unknown) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.payload = payload;
   }
-  return res.json();
 }
 
-async function requestList<T>(
-  path: string,
-  options?: RequestInit
-): Promise<ListResponse<T>> {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      Authorization: `Bearer ${TOKEN}`,
-      "Content-Type": "application/json",
-      ...options?.headers,
-    },
-  });
-  if (!res.ok) {
-    throw new Error(`API error: ${res.status} ${res.statusText}`);
+function formatErrorMessage(path: string, response: Response, payload: unknown): string {
+  const base = `API request failed for ${path}: ${response.status} ${response.statusText || ""}`.trim();
+  if (!payload || typeof payload !== "object") {
+    return base;
   }
-  return res.json() as Promise<ListResponse<T>>;
+
+  const data = (payload as { data?: unknown }).data;
+  if (!data || typeof data !== "object") {
+    return base;
+  }
+
+  const error = (data as { error?: unknown }).error;
+  if (typeof error === "string" && error.length > 0) {
+    return `${base} (${error})`;
+  }
+  return base;
+}
+
+function buildQuery(params?: QueryParams): string {
+  if (!params) {
+    return "";
+  }
+
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === null || value === undefined || value === "") {
+      return;
+    }
+    query.set(key, String(value));
+  });
+
+  const serialized = query.toString();
+  return serialized.length > 0 ? `?${serialized}` : "";
+}
+
+function buildHeaders(extra?: HeadersInit): Headers {
+  const headers = new Headers(extra);
+  if (!headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  headers.set("Authorization", `Bearer ${TOKEN}`);
+  return headers;
+}
+
+async function parseJson(response: Response): Promise<unknown> {
+  const text = await response.text();
+  if (!text) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return text;
+  }
+}
+
+async function request<T>(path: string, options?: RequestInit): Promise<ApiResponse<T>> {
+  const response = await fetch(`${BASE_URL}${path}`, {
+    ...options,
+    headers: buildHeaders(options?.headers),
+  });
+
+  const payload = await parseJson(response);
+  if (!response.ok) {
+    throw new ApiError(formatErrorMessage(path, response, payload), response.status, payload);
+  }
+
+  return payload as ApiResponse<T>;
+}
+
+async function requestList<T>(path: string, params?: QueryParams): Promise<ApiListResponse<T>> {
+  const query = buildQuery(params);
+  const response = await fetch(`${BASE_URL}${path}${query}`, {
+    headers: buildHeaders(),
+  });
+
+  const payload = await parseJson(response);
+  if (!response.ok) {
+    throw new ApiError(formatErrorMessage(path, response, payload), response.status, payload);
+  }
+
+  return payload as ApiListResponse<T>;
 }
 
 export const api = {
-  health: () => request<{ status: string; version: string }>("/health"),
-
+  health: () => request<Health>("/health"),
+  categories: () => request<CategoriesPayload>("/categories"),
   events: {
-    list: (params?: Record<string, string>) => {
-      const query = params ? "?" + new URLSearchParams(params).toString() : "";
-      return requestList<Event>(`/events${query}`);
-    },
+    list: (params?: QueryParams) => requestList<Event>("/events", params),
     get: (id: string) => request<Event>(`/events/${id}`),
-    create: (data: unknown) => request<Event>("/events", { method: "POST", body: JSON.stringify(data) }),
   },
-
   issues: {
-    list: (params?: Record<string, string>) => {
-      const query = params ? "?" + new URLSearchParams(params).toString() : "";
-      return requestList<Issue>(`/issues${query}`);
-    },
-    get: (id: string) => request<Issue>(`/issues/${id}`),
-    create: (data: unknown) => request<Issue>("/issues", { method: "POST", body: JSON.stringify(data) }),
-    update: (id: string, data: unknown) => request<Issue>(`/issues/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    list: (params?: QueryParams) => requestList<Issue>("/issues", params),
+    get: (id: string) => request<IssueDetail>(`/issues/${id}`),
   },
-
   servers: {
     list: () => request<Server[]>("/servers"),
-    get: (name: string) => request<Server>(`/servers/${name}`),
     briefing: (name: string) => request<Briefing>(`/servers/${name}/briefing`),
   },
-
-  categories: () => request<{ categories: Array<{ name: string; description: string }> }>("/categories"),
 };
