@@ -25,20 +25,20 @@ export function EventStream() {
   const eventsQuery = useEvents(params);
 
   const filteredData = useMemo(() => {
-    const events = eventsQuery.data?.data ?? [];
+    const events = eventsQuery.events;
     if (!filters.search) {
       return events;
     }
     const needle = filters.search.toLowerCase();
     return events.filter((event) => event.summary.toLowerCase().includes(needle));
-  }, [eventsQuery.data?.data, filters.search]);
+  }, [eventsQuery.events, filters.search]);
 
   const principalOptions = useMemo(() => {
-    const principals = new Set((eventsQuery.data?.data ?? []).map((event) => event.principal));
+    const principals = new Set(eventsQuery.events.map((event) => event.principal));
     return Array.from(principals)
       .sort()
       .map((principal) => ({ label: principal, value: principal }));
-  }, [eventsQuery.data?.data]);
+  }, [eventsQuery.events]);
 
   const serverOptions = useMemo(
     () => (serversQuery.data ?? []).map((server) => ({ label: server.name, value: server.name })),
@@ -84,7 +84,13 @@ export function EventStream() {
         ))}
       </div>
 
-      <Pagination hasMore={eventsQuery.data?.has_more ?? false} loading={eventsQuery.isFetching} onLoadMore={() => void 0} />
+      <Pagination
+        hasMore={eventsQuery.hasMore}
+        loading={eventsQuery.isFetchingNextPage}
+        onLoadMore={() => {
+          void eventsQuery.loadMore();
+        }}
+      />
     </section>
   );
 }

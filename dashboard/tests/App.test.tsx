@@ -25,7 +25,16 @@ vi.mock("@/hooks/useServers", () => ({
 }));
 
 vi.mock("@/hooks/useEvents", () => ({
-  useEvents: () => ({ data: { data: [], has_more: false }, isLoading: false, isError: false, isFetching: false }),
+  useEvents: () => ({
+    events: [],
+    warnings: [],
+    hasMore: false,
+    isLoading: false,
+    isError: false,
+    isFetching: false,
+    isFetchingNextPage: false,
+    loadMore: vi.fn(),
+  }),
   useEvent: () => ({ data: null, isLoading: false, isError: false }),
 }));
 

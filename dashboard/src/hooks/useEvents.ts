@@ -1,12 +1,43 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 
 import { api, type QueryParams } from "@/api/client";
+import type { Event } from "@/api/types";
 
-export function useEvents(params?: QueryParams) {
-  return useQuery({
+interface UseEventsResult {
+  events: Event[];
+  warnings: string[];
+  hasMore: boolean;
+  isLoading: boolean;
+  isError: boolean;
+  isFetching: boolean;
+  isFetchingNextPage: boolean;
+  loadMore: () => Promise<unknown>;
+}
+
+export function useEvents(params?: QueryParams): UseEventsResult {
+  const query = useInfiniteQuery({
     queryKey: ["events", params],
-    queryFn: () => api.events.list(params),
+    initialPageParam: null as string | null,
+    queryFn: ({ pageParam }) =>
+      api.events.list({
+        ...params,
+        cursor: pageParam ?? undefined,
+      }),
+    getNextPageParam: (lastPage) => (lastPage.has_more ? lastPage.next_cursor : undefined),
   });
+
+  const pages = query.data?.pages ?? [];
+
+  return {
+    events: pages.flatMap((page) => page.data),
+    warnings: pages.flatMap((page) => page.warnings),
+    hasMore: query.hasNextPage ?? false,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    isFetching: query.isFetching,
+    isFetchingNextPage: query.isFetchingNextPage,
+    loadMore: () => query.fetchNextPage(),
+  };
 }
 
 export function useEvent(id?: string) {
