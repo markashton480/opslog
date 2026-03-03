@@ -1,4 +1,5 @@
 import pytest
+from asyncpg import PostgresError
 
 
 @pytest.mark.asyncio
@@ -123,6 +124,9 @@ async def test_detail_size_validation(client, writer_headers):
         json={"category": "other", "summary": "Too large detail", "detail": large_detail},
     )
     assert response.status_code == 422
+    payload = response.json()
+    assert payload["warnings"] == []
+    assert payload["data"]["error"] == "validation_error"
 
 
 @pytest.mark.asyncio
@@ -134,3 +138,37 @@ async def test_request_body_too_large(client, writer_headers):
         json={"category": "other", "summary": too_large_summary},
     )
     assert response.status_code == 413
+
+
+@pytest.mark.asyncio
+async def test_validation_errors_use_response_envelope(client, writer_headers):
+    response = await client.post(
+        "/api/v1/events",
+        headers=writer_headers,
+        json={"category": "other"},
+    )
+    assert response.status_code == 422
+    payload = response.json()
+    assert payload["warnings"] == []
+    assert payload["data"]["error"] == "validation_error"
+
+
+@pytest.mark.asyncio
+async def test_events_are_immutable_in_database(client, db_conn, writer_headers):
+    create_response = await client.post(
+        "/api/v1/events",
+        headers=writer_headers,
+        json={
+            "server": "agent-workspace",
+            "category": "observation",
+            "summary": "Immutable event",
+        },
+    )
+    assert create_response.status_code == 201
+    event_id = create_response.json()["data"]["id"]
+
+    with pytest.raises(PostgresError):
+        await db_conn.execute("UPDATE events SET summary = 'changed' WHERE id = $1::uuid", event_id)
+
+    with pytest.raises(PostgresError):
+        await db_conn.execute("DELETE FROM events WHERE id = $1::uuid", event_id)

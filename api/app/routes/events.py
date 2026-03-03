@@ -80,21 +80,6 @@ async def create_event(payload: EventCreate, request: Request):
         if payload.server and server_id is None:
             warnings.append(f"unknown-server: {payload.server}")
 
-        if payload.dedupe_key:
-            existing = await conn.fetchrow(
-                """
-                SELECT *
-                FROM events
-                WHERE principal = $1
-                  AND dedupe_key = $2
-                LIMIT 1
-                """,
-                principal,
-                payload.dedupe_key,
-            )
-            if existing is not None:
-                return {"data": _row_to_event(existing), "warnings": warnings}
-
         occurred_at = payload.occurred_at or datetime.now(UTC)
 
         try:
@@ -118,6 +103,9 @@ async def create_event(payload: EventCreate, request: Request):
                     $1, $2, $3, $4, $5, $6,
                     $7, $8, $9, $10, $11, $12, $13
                 )
+                ON CONFLICT (principal, dedupe_key)
+                WHERE dedupe_key IS NOT NULL
+                DO NOTHING
                 RETURNING *
                 """,
                 occurred_at,
@@ -136,6 +124,21 @@ async def create_event(payload: EventCreate, request: Request):
             )
         except ForeignKeyViolationError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
+        if row is None and payload.dedupe_key:
+            existing = await conn.fetchrow(
+                """
+                SELECT *
+                FROM events
+                WHERE principal = $1
+                  AND dedupe_key = $2
+                LIMIT 1
+                """,
+                principal,
+                payload.dedupe_key,
+            )
+            if existing is not None:
+                return {"data": _row_to_event(existing), "warnings": warnings}
+            raise HTTPException(status_code=500, detail="failed_dedupe_lookup")
 
     return JSONResponse(status_code=201, content={"data": _row_to_event(row), "warnings": warnings})
 

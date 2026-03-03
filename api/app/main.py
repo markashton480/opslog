@@ -1,6 +1,8 @@
 from contextlib import asynccontextmanager
 
+from fastapi.encoders import jsonable_encoder
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -33,6 +35,17 @@ async def http_exception_handler(_, exc: StarletteHTTPException):
     return JSONResponse(
         status_code=exc.status_code,
         content={"data": {"error": exc.detail}, "warnings": []},
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def request_validation_exception_handler(_, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=422,
+        content={
+            "data": {"error": "validation_error", "detail": jsonable_encoder(exc.errors())},
+            "warnings": [],
+        },
     )
 
 
