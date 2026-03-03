@@ -2,7 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/api/client";
 
-export function useBriefing(name?: string) {
+interface UseBriefingOptions {
+  refetchInterval?: number;
+}
+
+export function useBriefing(name?: string, options?: UseBriefingOptions) {
   return useQuery({
     queryKey: ["briefing", name],
     queryFn: async () => {
@@ -10,5 +14,6 @@ export function useBriefing(name?: string) {
       return response.data;
     },
     enabled: Boolean(name),
+    refetchInterval: options?.refetchInterval,
   });
 }

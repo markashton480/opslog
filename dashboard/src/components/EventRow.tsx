@@ -5,21 +5,8 @@ import remarkGfm from "remark-gfm";
 
 import { CategoryPill } from "@/components/CategoryPill";
 import { PrincipalAvatar } from "@/components/PrincipalAvatar";
+import { formatRelativeTime } from "@/utils/format";
 import type { Event } from "@/api/types";
-
-function formatRelativeTime(dateStr: string): string {
-  const now = Date.now();
-  const then = new Date(dateStr).getTime();
-  const diffMs = now - then;
-  const diffSec = Math.floor(diffMs / 1000);
-  if (diffSec < 60) return "just now";
-  const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h ago`;
-  const diffDay = Math.floor(diffHr / 24);
-  return `${diffDay}d ago`;
-}
 
 function formatMetadata(metadata: Record<string, unknown>): string {
   if (Object.keys(metadata).length === 0) return "";
