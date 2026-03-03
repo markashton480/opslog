@@ -4,6 +4,7 @@ import { api, type QueryParams } from "@/api/client";
 
 interface UseIssuesOptions {
   refetchInterval?: number;
+  enabled?: boolean;
 }
 
 export function useIssues(params?: QueryParams, options?: UseIssuesOptions) {
@@ -11,10 +12,11 @@ export function useIssues(params?: QueryParams, options?: UseIssuesOptions) {
     queryKey: ["issues", params],
     queryFn: () => api.issues.list(params),
     refetchInterval: options?.refetchInterval,
+    enabled: options?.enabled,
   });
 }
 
-export function useIssue(id?: string) {
+export function useIssue(id?: string, options?: UseIssuesOptions) {
   return useQuery({
     queryKey: ["issue", id],
     queryFn: async () => {
@@ -22,5 +24,6 @@ export function useIssue(id?: string) {
       return response.data;
     },
     enabled: Boolean(id),
+    refetchInterval: options?.refetchInterval,
   });
 }
