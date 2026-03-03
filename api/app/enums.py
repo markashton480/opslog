@@ -22,6 +22,32 @@ class EventCategory(str, Enum):
     other = "other"
 
 
+class IssueStatus(str, Enum):
+    open = "open"
+    investigating = "investigating"
+    watching = "watching"
+    resolved = "resolved"
+    wontfix = "wontfix"
+
+
+class Severity(str, Enum):
+    critical = "critical"
+    high = "high"
+    medium = "medium"
+    low = "low"
+
+
+class RelationshipType(str, Enum):
+    related = "related"
+    caused_by = "caused_by"
+    duplicate_of = "duplicate_of"
+
+
+class ServerStatus(str, Enum):
+    active = "active"
+    decommissioned = "decommissioned"
+
+
 CATEGORY_DESCRIPTIONS: dict[EventCategory, str] = {
     EventCategory.deployment: "Code deployed, promoted, or rolled back",
     EventCategory.config_change: "Server or service configuration modified",

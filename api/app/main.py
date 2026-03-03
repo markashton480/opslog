@@ -10,7 +10,7 @@ from app.auth import AuthMiddleware
 from app.config import settings
 from app.db import close_pool, init_pool
 from app.middleware import RequestSizeLimitMiddleware
-from app.routes import events_router, utility_router
+from app.routes import events_router, issues_router, servers_router, utility_router
 
 
 @asynccontextmanager
@@ -50,6 +50,8 @@ async def request_validation_exception_handler(_, exc: RequestValidationError):
 
 
 app.include_router(events_router)
+app.include_router(issues_router)
+app.include_router(servers_router)
 app.include_router(utility_router)
 
 
