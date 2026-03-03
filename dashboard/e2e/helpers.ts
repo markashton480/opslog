@@ -3,7 +3,7 @@
  * Seeds test data via the API before running dashboard tests.
  */
 
-const API_URL = process.env.PLAYWRIGHT_API_URL || "http://localhost:8600";
+const API_URL = process.env.PLAYWRIGHT_API_URL || "http://localhost:8601";
 const TOKEN = process.env.PLAYWRIGHT_API_TOKEN || "opslog_codex_b_test";
 const ADMIN_TOKEN = process.env.PLAYWRIGHT_ADMIN_TOKEN || "opslog_mark_test";
 

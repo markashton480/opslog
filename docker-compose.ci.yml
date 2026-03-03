@@ -4,7 +4,7 @@
 # Differences from production:
 #   - Exposes API on host port 8600 for seed scripts
 #   - Injects test auth token into dashboard build
-#   - Removes resource limits (CI runners have enough memory)
+#   - Adjusts resource limits for CI; memory limits kept but may differ from production
 
 services:
   api:

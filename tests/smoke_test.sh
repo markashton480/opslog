@@ -6,13 +6,17 @@
 #   - Pagination handles large result sets
 #
 # Usage:
-#   OPSLOG_API=http://localhost:8600 OPSLOG_TOKEN=opslog_codex_b_test ./tests/smoke_test.sh
-#   OPSLOG_API=https://opslog.lintel.digital OPSLOG_TOKEN=<token> ./tests/smoke_test.sh
+#   OPSLOG_API=http://localhost:8600 OPSLOG_TOKEN=opslog_codex_b_test \
+#     OPSLOG_ADMIN_TOKEN=opslog_mark_test ./tests/smoke_test.sh
+#
+# Note: OPSLOG_ADMIN_TOKEN is required for server creation (PUT /servers requires admin role).
+#       OPSLOG_TOKEN (writer) is used for events, issues, and queries.
 
 set -euo pipefail
 
 API="${OPSLOG_API:-http://localhost:8600}"
 TOKEN="${OPSLOG_TOKEN:-opslog_codex_b_test}"
+ADMIN_TOKEN="${OPSLOG_ADMIN_TOKEN:-opslog_mark_test}"
 NUM_EVENTS="${NUM_EVENTS:-200}"
 NUM_ISSUES="${NUM_ISSUES:-20}"
 BRIEFING_MAX_MS="${BRIEFING_MAX_MS:-200}"
@@ -59,9 +63,10 @@ fi
 # --- Ensure test server exists ---
 echo ""
 echo "2. Ensure smoke-test server"
+admin_auth_header="Authorization: Bearer ${ADMIN_TOKEN}"
 curl -sf -X PUT "${API}/api/v1/servers/smoke-test-server" \
   -H "Content-Type: application/json" \
-  -H "$auth_header" \
+  -H "$admin_auth_header" \
   -d '{"display_name":"Smoke Test Server","environment":"test"}' > /dev/null 2>&1
 check "Server smoke-test-server created/updated" $?
 
@@ -124,7 +129,7 @@ max_ms=0
 for i in $(seq 1 5); do
   ms=$(curl -sf -o /dev/null -w "%{time_total}" "${API}/api/v1/servers/smoke-test-server/briefing" \
     -H "$auth_header" 2>/dev/null || echo "9.999")
-  ms_int=$(echo "$ms * 1000" | bc | cut -d. -f1)
+  ms_int=$(python3 -c "print(int(float('$ms') * 1000))")
   total_ms=$((total_ms + ms_int))
   if [ "$ms_int" -gt "$max_ms" ]; then
     max_ms=$ms_int

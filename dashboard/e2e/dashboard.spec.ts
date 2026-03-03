@@ -1,11 +1,13 @@
 import { test, expect } from "@playwright/test";
 import { seedTestData } from "./helpers";
 
-test.describe("Fleet Overview", () => {
-  test.beforeAll(async () => {
-    await seedTestData();
-  });
+// Seed once for all tests in this file (idempotent via dedupe_key)
+let seedResult: Awaited<ReturnType<typeof seedTestData>>;
+test.beforeAll(async () => {
+  seedResult = await seedTestData();
+});
 
+test.describe("Fleet Overview", () => {
   test("displays server cards with status indicators", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator("h2, h3").filter({ hasText: /Fleet Overview/i })).toBeVisible();
@@ -32,10 +34,6 @@ test.describe("Fleet Overview", () => {
 });
 
 test.describe("Event Stream", () => {
-  test.beforeAll(async () => {
-    await seedTestData();
-  });
-
   test("displays events and supports category filter", async ({ page }) => {
     await page.goto("/events");
 
@@ -54,16 +52,18 @@ test.describe("Event Stream", () => {
   test("supports server filter", async ({ page }) => {
     await page.goto("/events");
 
-    // Wait for page to load
-    await expect(page.locator("main")).toContainText(/event/i, { timeout: 10_000 });
+    // Wait for events to load
+    const eventRows = page.locator("table tbody tr, [data-testid='event-row']");
+    await expect(eventRows.first()).toBeVisible({ timeout: 10_000 });
 
     // Look for server filter control
     const serverFilter = page.locator("select, [role='combobox'], [data-testid='server-filter']").first();
     if (await serverFilter.isVisible()) {
-      // Select a specific server
       await serverFilter.selectOption({ label: /agent-workspace/i }).catch(() => {
-        // Might be a custom select component
+        // Custom select component — click-based interaction
       });
+      // After filter attempt, page should still show event content
+      await expect(page.locator("main")).toContainText(/event/i, { timeout: 5_000 });
     }
   });
 
@@ -81,10 +81,6 @@ test.describe("Event Stream", () => {
 });
 
 test.describe("Issues Board", () => {
-  test.beforeAll(async () => {
-    await seedTestData();
-  });
-
   test("displays issues in board or table view", async ({ page }) => {
     await page.goto("/issues");
 
@@ -123,14 +119,8 @@ test.describe("Issues Board", () => {
 });
 
 test.describe("Issue Detail", () => {
-  let issueId: string;
-
-  test.beforeAll(async () => {
-    const seed = await seedTestData();
-    issueId = seed.issueIds[0];
-  });
-
   test("shows issue metadata and timeline", async ({ page }) => {
+    const issueId = seedResult.issueIds[0];
     await page.goto(`/issues/${issueId}`);
 
     // Should show issue title
@@ -147,6 +137,7 @@ test.describe("Issue Detail", () => {
   });
 
   test("shows observation in timeline", async ({ page }) => {
+    const issueId = seedResult.issueIds[0];
     await page.goto(`/issues/${issueId}`);
 
     // Wait for full load
@@ -158,10 +149,6 @@ test.describe("Issue Detail", () => {
 });
 
 test.describe("Server Detail", () => {
-  test.beforeAll(async () => {
-    await seedTestData();
-  });
-
   test("shows server briefing with events and issues", async ({ page }) => {
     await page.goto("/servers/agent-workspace");
 
@@ -175,14 +162,15 @@ test.describe("Server Detail", () => {
     await expect(page.locator("main")).toContainText(/open issues|issue/i);
   });
 
-  test("shows correct environment badge", async ({ page }) => {
+  test("shows server-specific content", async ({ page }) => {
     await page.goto("/servers/agent-workspace");
 
     await expect(page.locator("main")).toContainText(/agent-workspace/i, { timeout: 10_000 });
 
-    // Should display environment info
+    // Server detail should have meaningful content (status, events, or issues)
     const mainContent = await page.locator("main").textContent();
     expect(mainContent).toBeTruthy();
+    expect(mainContent!.length).toBeGreaterThan(50);
   });
 });
 

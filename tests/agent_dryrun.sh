@@ -70,7 +70,7 @@ ev_resp=$(api_post "/events" "{
   \"summary\": \"Agent dry-run: deployed v99.0.0 at ${ts}\",
   \"tags\": [\"dryrun\", \"release\"],
   \"metadata\": {\"ref\": \"v99.0.0\", \"agent\": \"codex_b\"},
-  \"idempotency_key\": \"dryrun-deploy-${ts}\"
+  \"dedupe_key\": \"dryrun-deploy-${ts}\"
 }")
 ev_id=$(echo "$ev_resp" | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['id'])")
 check "Event created: ${ev_id}" $([[ -n "$ev_id" ]] && echo 0 || echo 1)
@@ -84,7 +84,7 @@ obs_resp=$(api_post "/events" "{
   \"tags\": [\"dryrun\", \"latency\"]
 }")
 obs_id=$(echo "$obs_resp" | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['id'])")
-check "Observation event created: ${obs_id}" 0
+check "Observation event created: ${obs_id}" $([[ -n "$obs_id" ]] && echo 0 || echo 1)
 
 # -------------------------------------------------------
 step "4. Report an issue"
@@ -97,7 +97,7 @@ iss_resp=$(api_post "/issues" "{
 }")
 iss_id=$(echo "$iss_resp" | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['id'])")
 iss_ver=$(echo "$iss_resp" | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['version'])")
-check "Issue created: ${iss_id} (version ${iss_ver})" 0
+check "Issue created: ${iss_id} (version ${iss_ver})" $([[ -n "$iss_id" && -n "$iss_ver" ]] && echo 0 || echo 1)
 
 # -------------------------------------------------------
 step "5. Begin investigation — transition to investigating"

@@ -244,7 +244,7 @@ async def test_issue_cross_references_in_briefing(client, writer_headers):
 
 @pytest.mark.asyncio
 async def test_idempotent_event_creation(client, writer_headers):
-    """Duplicate idempotency_key returns same event, not a new one."""
+    """Duplicate dedupe_key returns same event, not a new one."""
     payload = {
         "server": "agent-workspace",
         "category": "deployment",
