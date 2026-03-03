@@ -13,7 +13,7 @@ interface SeedResult {
   issueIds: string[];
 }
 
-async function apiPost(path: string, body: Record<string, unknown>) {
+async function apiPost(path: string, body: Record<string, unknown>): Promise<{ data: Record<string, unknown>; created: boolean }> {
   const res = await fetch(`${API_URL}/api/v1${path}`, {
     method: "POST",
     headers: {
@@ -22,11 +22,11 @@ async function apiPost(path: string, body: Record<string, unknown>) {
     },
     body: JSON.stringify(body),
   });
-  // 200 = deduplicated (existing record returned), 201 = created
   if (!res.ok && res.status !== 200) {
     throw new Error(`API ${path} failed: ${res.status} ${await res.text()}`);
   }
-  return res.json();
+  const json = await res.json();
+  return { data: json.data, created: res.status === 201 };
 }
 
 async function apiPut(path: string, body: Record<string, unknown>, token?: string) {
@@ -86,7 +86,7 @@ export async function seedTestData(): Promise<SeedResult> {
 
   for (const ev of events) {
     const r = await apiPost("/events", ev);
-    eventIds.push(r.data.id);
+    eventIds.push(r.data.id as string);
   }
 
   // Create issues at different severities and statuses (dedupe_key for idempotent re-runs)
@@ -98,13 +98,15 @@ export async function seedTestData(): Promise<SeedResult> {
     tags: ["e2e", "memory"],
     dedupe_key: "e2e-memory-leak",
   });
-  issueIds.push(issue1.data.id);
+  issueIds.push(issue1.data.id as string);
 
-  // Move to investigating
-  const patched1 = await apiPatch(`/issues/${issue1.data.id}`, {
-    version: issue1.data.version,
-    status: "investigating",
-  });
+  // Move to investigating (only if freshly created — deduped issue may already be there)
+  if (issue1.created) {
+    await apiPatch(`/issues/${issue1.data.id}`, {
+      version: issue1.data.version,
+      status: "investigating",
+    });
+  }
 
   const issue2 = await apiPost("/issues", {
     title: "E2E: Disk space low on test server",
@@ -114,7 +116,7 @@ export async function seedTestData(): Promise<SeedResult> {
     tags: ["e2e", "disk"],
     dedupe_key: "e2e-disk-low",
   });
-  issueIds.push(issue2.data.id);
+  issueIds.push(issue2.data.id as string);
 
   const issue3 = await apiPost("/issues", {
     title: "E2E: Resolved cert issue",
@@ -124,23 +126,25 @@ export async function seedTestData(): Promise<SeedResult> {
     tags: ["e2e"],
     dedupe_key: "e2e-cert-resolved",
   });
-  issueIds.push(issue3.data.id);
+  issueIds.push(issue3.data.id as string);
 
-  // Move issue3 through to resolved
-  const inv3 = await apiPatch(`/issues/${issue3.data.id}`, {
-    version: issue3.data.version,
-    status: "investigating",
-  });
-  const watch3 = await apiPatch(`/issues/${issue3.data.id}`, {
-    version: inv3.data.version,
-    status: "watching",
-  });
-  await apiPatch(`/issues/${issue3.data.id}`, {
-    version: watch3.data.version,
-    status: "resolved",
-  });
+  // Move issue3 through to resolved (only if freshly created)
+  if (issue3.created) {
+    const inv3 = await apiPatch(`/issues/${issue3.data.id}`, {
+      version: issue3.data.version,
+      status: "investigating",
+    });
+    const watch3 = await apiPatch(`/issues/${issue3.data.id}`, {
+      version: inv3.data.version,
+      status: "watching",
+    });
+    await apiPatch(`/issues/${issue3.data.id}`, {
+      version: watch3.data.version,
+      status: "resolved",
+    });
+  }
 
-  // Add an observation to issue1
+  // Add an observation to issue1 (idempotent — extra observations are fine)
   await apiPost(`/issues/${issue1.data.id}/updates`, {
     content: "E2E: Observed memory spike after deploy",
   });

@@ -18,7 +18,7 @@ services:
   dashboard:
     build:
       args:
-        VITE_OPSLOG_TOKEN: ${VITE_OPSLOG_TOKEN:-opslog_codex_b_test}
+        VITE_OPSLOG_TOKEN: ${VITE_OPSLOG_TOKEN:-opslog_readonly_test}
     deploy:
       resources:
         limits:

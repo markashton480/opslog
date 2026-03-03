@@ -37,7 +37,7 @@ Tracks active and resolved infrastructure issues.
 
 **Views:**
 - **Board view** — Kanban-style columns grouped by status (Open, Investigating,
-  Watching, Resolved)
+  Watching, Resolved, Won't Fix)
 - **Table view** — sortable table with all issue metadata
 
 **Filters:**

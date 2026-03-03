@@ -89,7 +89,8 @@ oapi -X PATCH "$OPSLOG/api/v1/issues/<issue-uuid>" -d "{
 }"
 ```
 
-Valid transitions: `open` → `investigating` → `watching` → `resolved` (and back to `open`).
+Valid transitions: `open` → `investigating` → `watching` → `resolved` (and back
+to `open`). Also: `open` → `wontfix` → `open`.
 
 ### 7. Add an observation to an issue
 
