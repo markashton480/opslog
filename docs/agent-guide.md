@@ -118,8 +118,8 @@ oapi "$OPSLOG/api/v1/events?since=2025-01-01T00:00:00Z&until=2025-01-31T23:59:59
 # Open issues for a server
 oapi "$OPSLOG/api/v1/issues?server=agent-workspace&status=open"
 
-# Filter by severity
-oapi "$OPSLOG/api/v1/issues?severity=critical&severity=high"
+# Filter by severity (comma-separated)
+oapi "$OPSLOG/api/v1/issues?severity=critical,high"
 ```
 
 ## Event Categories
@@ -141,8 +141,12 @@ oapi "$OPSLOG/api/v1/issues?severity=critical&severity=high"
 
 ## API Reference
 
-Full interactive API documentation (Swagger UI) is available at:
+Full interactive API documentation (Swagger UI) is available when accessing
+the API service directly (not via the public reverse proxy):
 
 ```
-https://opslog.lintel.digital/api/v1/docs
+http://localhost:8600/docs
 ```
+
+> **Note:** The public URL (`https://opslog.lintel.digital`) proxies only `/api/v1/*`
+> to the backend. Swagger UI at `/docs` is only accessible via direct API access.

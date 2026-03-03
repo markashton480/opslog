@@ -22,7 +22,8 @@ async function apiPost(path: string, body: Record<string, unknown>) {
     },
     body: JSON.stringify(body),
   });
-  if (!res.ok) {
+  // 200 = deduplicated (existing record returned), 201 = created
+  if (!res.ok && res.status !== 200) {
     throw new Error(`API ${path} failed: ${res.status} ${await res.text()}`);
   }
   return res.json();
@@ -74,13 +75,13 @@ export async function seedTestData(): Promise<SeedResult> {
     environment: "test",
   }, ADMIN_TOKEN);
 
-  // Create events across servers and categories
+  // Create events across servers and categories (dedupe_key for idempotent re-runs)
   const events = [
-    { server: "agent-workspace", category: "deployment", summary: "E2E: Deployed v4.0.0", tags: ["e2e", "release"] },
-    { server: "agent-workspace", category: "observation", summary: "E2E: High CPU usage observed", tags: ["e2e", "cpu"] },
-    { server: "agent-workspace", category: "ci", summary: "E2E: CI pipeline passed", tags: ["e2e", "ci"], metadata: { run_id: 999 } },
-    { server: "e2e-test-server", category: "config_change", summary: "E2E: Updated nginx config", tags: ["e2e", "nginx"] },
-    { server: "e2e-test-server", category: "security", summary: "E2E: SSL cert renewed", tags: ["e2e", "ssl"] },
+    { server: "agent-workspace", category: "deployment", summary: "E2E: Deployed v4.0.0", tags: ["e2e", "release"], dedupe_key: "e2e-deploy-v4" },
+    { server: "agent-workspace", category: "observation", summary: "E2E: High CPU usage observed", tags: ["e2e", "cpu"], dedupe_key: "e2e-cpu-obs" },
+    { server: "agent-workspace", category: "ci", summary: "E2E: CI pipeline passed", tags: ["e2e", "ci"], metadata: { run_id: 999 }, dedupe_key: "e2e-ci-pass" },
+    { server: "e2e-test-server", category: "config_change", summary: "E2E: Updated nginx config", tags: ["e2e", "nginx"], dedupe_key: "e2e-nginx-cfg" },
+    { server: "e2e-test-server", category: "security", summary: "E2E: SSL cert renewed", tags: ["e2e", "ssl"], dedupe_key: "e2e-ssl-renew" },
   ];
 
   for (const ev of events) {
@@ -88,13 +89,14 @@ export async function seedTestData(): Promise<SeedResult> {
     eventIds.push(r.data.id);
   }
 
-  // Create issues at different severities and statuses
+  // Create issues at different severities and statuses (dedupe_key for idempotent re-runs)
   const issue1 = await apiPost("/issues", {
     title: "E2E: Memory leak in API",
     severity: "critical",
     server: "agent-workspace",
     symptoms: "RSS grows unbounded",
     tags: ["e2e", "memory"],
+    dedupe_key: "e2e-memory-leak",
   });
   issueIds.push(issue1.data.id);
 
@@ -110,6 +112,7 @@ export async function seedTestData(): Promise<SeedResult> {
     server: "e2e-test-server",
     symptoms: "Disk at 90%",
     tags: ["e2e", "disk"],
+    dedupe_key: "e2e-disk-low",
   });
   issueIds.push(issue2.data.id);
 
@@ -119,6 +122,7 @@ export async function seedTestData(): Promise<SeedResult> {
     server: "e2e-test-server",
     symptoms: "Cert expired",
     tags: ["e2e"],
+    dedupe_key: "e2e-cert-resolved",
   });
   issueIds.push(issue3.data.id);
 

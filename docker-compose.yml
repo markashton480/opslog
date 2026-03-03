@@ -49,7 +49,7 @@ services:
       dockerfile: dashboard/Dockerfile
       args:
         VITE_OPSLOG_API_URL: ${VITE_OPSLOG_API_URL:-/api/v1}
-        VITE_OPSLOG_TOKEN: ${VITE_OPSLOG_TOKEN}
+        VITE_OPSLOG_TOKEN: ${VITE_OPSLOG_TOKEN:?VITE_OPSLOG_TOKEN must be set}
     ports:
       - "${LISTEN_ADDR:-127.0.0.1}:${DASHBOARD_PORT:-8601}:8601"
     depends_on:

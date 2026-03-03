@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { seedTestData } from "./helpers";
 
-// Seed once for all tests in this file (idempotent via dedupe_key)
+// Seed once for all tests in this file (idempotent via dedupe_key on events/issues)
 let seedResult: Awaited<ReturnType<typeof seedTestData>>;
 test.beforeAll(async () => {
   seedResult = await seedTestData();
@@ -100,6 +100,8 @@ test.describe("Issues Board", () => {
     const severityFilter = page.locator("select, [role='combobox']").filter({ hasText: /severity|all/i }).first();
     if (await severityFilter.isVisible().catch(() => false)) {
       await severityFilter.click();
+      // After interacting with filter, issues should still render
+      await expect(page.locator("main")).toContainText(/E2E:/i, { timeout: 5_000 });
     }
   });
 

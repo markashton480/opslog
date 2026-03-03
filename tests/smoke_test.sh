@@ -64,11 +64,12 @@ fi
 echo ""
 echo "2. Ensure smoke-test server"
 admin_auth_header="Authorization: Bearer ${ADMIN_TOKEN}"
+srv_rc=0
 curl -sf -X PUT "${API}/api/v1/servers/smoke-test-server" \
   -H "Content-Type: application/json" \
   -H "$admin_auth_header" \
-  -d '{"display_name":"Smoke Test Server","environment":"test"}' > /dev/null 2>&1
-check "Server smoke-test-server created/updated" $?
+  -d '{"display_name":"Smoke Test Server","environment":"test"}' > /dev/null 2>&1 || srv_rc=$?
+check "Server smoke-test-server created/updated" $srv_rc
 
 # --- Generate events ---
 echo ""
@@ -119,9 +120,9 @@ check "All issues created" $([[ $iss_fail -eq 0 ]] && echo 0 || echo 1)
 # --- Briefing latency ---
 echo ""
 echo "5. Briefing endpoint latency (< ${BRIEFING_MAX_MS}ms)"
-# Warm up
+# Warm up (non-fatal — server may need a moment)
 curl -sf "${API}/api/v1/servers/smoke-test-server/briefing" \
-  -H "$auth_header" > /dev/null 2>&1
+  -H "$auth_header" > /dev/null 2>&1 || true
 
 # Measure 5 requests
 total_ms=0

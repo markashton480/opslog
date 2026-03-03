@@ -41,9 +41,9 @@ check() {
   fi
 }
 
-api_get()  { curl -sf "${API}/api/v1$1" -H "$auth_header"; }
-api_post() { curl -sf -X POST "${API}/api/v1$1" -H "Content-Type: application/json" -H "$auth_header" -d "$2"; }
-api_patch(){ curl -sf -X PATCH "${API}/api/v1$1" -H "Content-Type: application/json" -H "$auth_header" -d "$2"; }
+api_get()  { curl -sf "${API}/api/v1$1" -H "$auth_header" || { echo '{"error":"request failed"}'; return 1; }; }
+api_post() { curl -sf -X POST "${API}/api/v1$1" -H "Content-Type: application/json" -H "$auth_header" -d "$2" || { echo '{"error":"request failed"}'; return 1; }; }
+api_patch(){ curl -sf -X PATCH "${API}/api/v1$1" -H "Content-Type: application/json" -H "$auth_header" -d "$2" || { echo '{"error":"request failed"}'; return 1; }; }
 
 echo "================================================="
 echo " OpsLog Agent Dry-Run"
