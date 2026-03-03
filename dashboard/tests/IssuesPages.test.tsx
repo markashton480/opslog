@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -118,6 +118,9 @@ vi.mock("@/api/client", () => ({
   },
 }));
 
+// Import the mocked module to control behavior per-test
+import { api, ApiError } from "@/api/client";
+
 function renderRoute(route: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
@@ -199,6 +202,44 @@ describe("IssuesBoard", () => {
   it("renders issue filter bar", () => {
     renderRoute("/issues");
     expect(screen.getByTestId("issue-filter-bar")).toBeInTheDocument();
+  });
+
+  it("switches to table view and renders sortable columns", () => {
+    renderRoute("/issues");
+    fireEvent.click(screen.getByText("Table"));
+    const table = screen.getByTestId("issues-table");
+    expect(within(table).getByText(/Title/)).toBeInTheDocument();
+    expect(within(table).getByText(/Severity/)).toBeInTheDocument();
+    expect(within(table).getByText(/Updated At/)).toBeInTheDocument();
+    // All issues should appear in rows (including resolved/wontfix — table shows all)
+    expect(within(table).getByText("DNS resolver timeout")).toBeInTheDocument();
+    expect(within(table).getByText("Old bug fixed")).toBeInTheDocument();
+  });
+
+  it("table sort changes on column header click", () => {
+    renderRoute("/issues");
+    fireEvent.click(screen.getByText("Table"));
+    const table = screen.getByTestId("issues-table");
+    const titleHeader = within(table).getByText(/Title/);
+    // Click title column to sort
+    fireEvent.click(titleHeader);
+    // Should show a sort indicator
+    expect(titleHeader.textContent).toMatch(/Title.*▼/);
+    // Click again to toggle direction
+    fireEvent.click(titleHeader);
+    expect(titleHeader.textContent).toMatch(/Title.*▲/);
+  });
+
+  it("view toggle preserves filters", () => {
+    renderRoute("/issues?severity=critical");
+    // Should start in kanban
+    expect(screen.getByTestId("kanban-grid")).toBeInTheDocument();
+    // Switch to table
+    fireEvent.click(screen.getByText("Table"));
+    expect(screen.getByTestId("issues-table")).toBeInTheDocument();
+    // Switch back to kanban — should still render (filters preserved)
+    fireEvent.click(screen.getByText("Kanban"));
+    expect(screen.getByTestId("kanban-grid")).toBeInTheDocument();
   });
 });
 
@@ -304,5 +345,32 @@ describe("IssueDetail", () => {
     renderRoute("/issues/iss-det");
     expect(screen.getByText("Linked Events")).toBeInTheDocument();
     expect(screen.getByText("1")).toBeInTheDocument();
+  });
+
+  it("opens edit form and shows fields", () => {
+    renderRoute("/issues/iss-det");
+    fireEvent.click(screen.getByTestId("edit-button"));
+    expect(screen.getByTestId("edit-form")).toBeInTheDocument();
+    expect(screen.getByTestId("edit-status")).toBeInTheDocument();
+    expect(screen.getByTestId("edit-severity")).toBeInTheDocument();
+    expect(screen.getByTestId("edit-save")).toBeInTheDocument();
+  });
+
+  it("shows 409 conflict error on save", async () => {
+    const mockUpdate = api.issues.update as ReturnType<typeof vi.fn>;
+    const err = new ApiError("Conflict", 409, {});
+    mockUpdate.mockRejectedValueOnce(err);
+
+    renderRoute("/issues/iss-det");
+    fireEvent.click(screen.getByTestId("edit-button"));
+
+    // Change status to trigger a real patch
+    fireEvent.change(screen.getByTestId("edit-status"), { target: { value: "investigating" } });
+    fireEvent.click(screen.getByTestId("edit-save"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("edit-error")).toBeInTheDocument();
+      expect(screen.getByTestId("edit-error").textContent).toMatch(/Conflict/);
+    });
   });
 });

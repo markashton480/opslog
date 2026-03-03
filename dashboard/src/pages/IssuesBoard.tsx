@@ -56,7 +56,7 @@ function paramsFromFilters(f: IssueFilterValues): Record<string, string> {
 
 /* ── Table sort logic ──────────────────────────────────── */
 
-type SortField = "title" | "status" | "severity" | "server" | "created_by" | "first_seen" | "last_occurrence";
+type SortField = "title" | "status" | "severity" | "server" | "created_by" | "first_seen" | "last_occurrence" | "updated_at";
 type SortDir = "asc" | "desc";
 
 const statusOrder: Record<IssueStatus, number> = { open: 0, investigating: 1, watching: 2, resolved: 3, wontfix: 4 };
@@ -71,6 +71,7 @@ function compareIssues(a: Issue, b: Issue, field: SortField, dir: SortDir): numb
     case "created_by": cmp = a.created_by.localeCompare(b.created_by); break;
     case "first_seen": cmp = new Date(a.first_seen).getTime() - new Date(b.first_seen).getTime(); break;
     case "last_occurrence": cmp = new Date(a.last_occurrence).getTime() - new Date(b.last_occurrence).getTime(); break;
+    case "updated_at": cmp = new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime(); break;
   }
   return dir === "asc" ? cmp : -cmp;
 }
@@ -240,6 +241,7 @@ export function IssuesBoard() {
                   ["created_by", "Created By"],
                   ["first_seen", "First Seen"],
                   ["last_occurrence", "Last Occurrence"],
+                  ["updated_at", "Updated At"],
                 ] as [SortField, string][]).map(([field, label]) => (
                   <th
                     key={field}
@@ -272,6 +274,9 @@ export function IssuesBoard() {
                   </td>
                   <td className="px-4 py-3 text-xs text-slate-500" title={new Date(issue.last_occurrence).toLocaleString()}>
                     {formatRelativeTime(issue.last_occurrence)}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-slate-500" title={new Date(issue.updated_at).toLocaleString()}>
+                    {formatRelativeTime(issue.updated_at)}
                   </td>
                 </tr>
               ))}
