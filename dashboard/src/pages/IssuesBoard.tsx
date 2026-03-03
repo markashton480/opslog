@@ -107,14 +107,16 @@ export function IssuesBoard() {
 
   // Build API params from filters
   const noStatusSelected = filters.statuses.length === 0;
+  const statusStr = filters.statuses.join(",");
+  const severityStr = filters.severities.join(",");
   const apiParams = useMemo(() => {
     const p: Record<string, string> = { limit: "100" };
-    if (filters.statuses.length > 0) p.status = filters.statuses.join(",");
-    if (filters.severities.length > 0) p.severity = filters.severities.join(",");
+    if (statusStr) p.status = statusStr;
+    if (severityStr) p.severity = severityStr;
     if (filters.server) p.server = filters.server;
     if (filters.tag) p.tag = filters.tag;
     return p;
-  }, [filters]);
+  }, [statusStr, severityStr, filters.server, filters.tag]);
 
   const issuesQuery = useIssues(noStatusSelected ? undefined : apiParams, { refetchInterval: 60_000, enabled: !noStatusSelected });
   const serversQuery = useServers();
