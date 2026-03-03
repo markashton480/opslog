@@ -3,7 +3,11 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 
 ARG VITE_OPSLOG_API_URL=/api/v1
+# Security note: this token is baked into static JS assets at build time.
+# It MUST be a read-only (reader role) token — never use a writer/admin token here.
+ARG VITE_OPSLOG_TOKEN=
 ENV VITE_OPSLOG_API_URL=$VITE_OPSLOG_API_URL
+ENV VITE_OPSLOG_TOKEN=$VITE_OPSLOG_TOKEN
 
 COPY dashboard/package*.json ./
 RUN npm ci
