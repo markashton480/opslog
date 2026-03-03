@@ -9,11 +9,14 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     -- Ensure uuid-ossp extension is available
     CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-    -- Create a read-only role for monitoring/reporting
+    -- Create a read-only login role for infra monitoring/reporting.
+    -- Note: application roles (opslog_app / opslog_read) are managed
+    -- by API migrations (004_roles.sql). This role is for external
+    -- monitoring tools that need direct DB access.
     DO \$\$
     BEGIN
         IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'opslog_readonly') THEN
-            CREATE ROLE opslog_readonly;
+            CREATE ROLE opslog_readonly LOGIN;
         END IF;
     END
     \$\$;

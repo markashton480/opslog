@@ -60,15 +60,19 @@ make tokens
 
 ### Add a new principal
 
-1. Insert into the `principals` table:
+The recommended approach is to use `make tokens` which handles hashing.
+For manual insertion, use pgcrypto's `digest()` function:
 
 ```sql
 -- Connect to the database
 make psql
 
--- Add the principal
+-- Ensure pgcrypto is available
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- Add the principal (hash must match API's hex-encoded SHA-256)
 INSERT INTO principals (name, role, token_hash, status)
-VALUES ('new_agent', 'writer', encode(sha256('YOUR_TOKEN_HERE'::bytea), 'hex'), 'active');
+VALUES ('new_agent', 'writer', encode(digest('YOUR_TOKEN_HERE', 'sha256'), 'hex'), 'active');
 ```
 
 2. Distribute the token to the principal securely.
@@ -80,7 +84,7 @@ make psql
 
 -- Update the token hash
 UPDATE principals
-SET token_hash = encode(sha256('NEW_TOKEN_HERE'::bytea), 'hex')
+SET token_hash = encode(digest('NEW_TOKEN_HERE', 'sha256'), 'hex')
 WHERE name = 'the_principal';
 ```
 
