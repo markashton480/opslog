@@ -80,7 +80,7 @@ make down
 ```
 
 Dashboard: http://localhost:8601  
-API: http://localhost:8600/api/v1/health
+API (via proxy): http://localhost:8601/api/v1/health
 
 ## Production Deployment
 

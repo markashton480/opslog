@@ -93,15 +93,13 @@ WHERE name = 'the_principal';
 ```sql
 make psql
 
-INSERT INTO servers (id, name, display_name, environment, provider, region, status)
+INSERT INTO servers (name, display_name, private_ipv4, status, notes)
 VALUES (
-    gen_random_uuid(),
     'my-server-01',
     'My Server 01',
-    'production',
-    'hetzner',
-    'eu-central',
-    'active'
+    '10.44.0.10',
+    'active',
+    'Added via runbook'
 );
 ```
 

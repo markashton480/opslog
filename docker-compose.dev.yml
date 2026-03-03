@@ -20,7 +20,5 @@ services:
       - ./dashboard/src:/app/src
       - ./dashboard/tests:/app/tests
       - ./dashboard/index.html:/app/index.html
-    ports:
-      - "8601:8601"
     environment:
       VITE_OPSLOG_API_URL: http://host.docker.internal:8600/api/v1
