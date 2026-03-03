@@ -12,9 +12,10 @@ export default defineConfig({
   },
   server: {
     port: 8601,
+    host: true,
     proxy: {
       "/api": {
-        target: "http://localhost:8600",
+        target: process.env.VITE_API_PROXY_TARGET || "http://localhost:8600",
         changeOrigin: true,
       },
     },
