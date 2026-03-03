@@ -7,6 +7,7 @@ import type {
   Health,
   Issue,
   IssueDetail,
+  IssueUpdate,
   Server,
 } from "./types";
 
@@ -123,6 +124,16 @@ export const api = {
   issues: {
     list: (params?: QueryParams) => requestList<Issue>("/issues", params),
     get: (id: string) => request<IssueDetail>(`/issues/${id}`),
+    update: (id: string, data: Record<string, unknown>) =>
+      request<Issue>(`/issues/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+    addUpdate: (id: string, data: { content: string; occurred_at?: string }) =>
+      request<IssueUpdate>(`/issues/${id}/updates`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
   },
   servers: {
     list: () => request<Server[]>("/servers"),

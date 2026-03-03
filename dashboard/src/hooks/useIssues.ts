@@ -14,7 +14,7 @@ export function useIssues(params?: QueryParams, options?: UseIssuesOptions) {
   });
 }
 
-export function useIssue(id?: string) {
+export function useIssue(id?: string, options?: UseIssuesOptions) {
   return useQuery({
     queryKey: ["issue", id],
     queryFn: async () => {
@@ -22,5 +22,6 @@ export function useIssue(id?: string) {
       return response.data;
     },
     enabled: Boolean(id),
+    refetchInterval: options?.refetchInterval,
   });
 }
