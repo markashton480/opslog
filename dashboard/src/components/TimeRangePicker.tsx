@@ -73,6 +73,7 @@ export function TimeRangePicker({ since, until, onSinceChange, onUntilChange }: 
           <button
             type="button"
             onClick={clearRange}
+            aria-label="Clear time range"
             className="rounded-md px-2 py-1 text-xs font-medium text-slate-400 hover:text-slate-600"
           >
             ✕
