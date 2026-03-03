@@ -79,6 +79,7 @@ jobs:
       - name: Test
         run: pytest tests/ -v --tb=short
         env:
+          PYTHONPATH: .
           DATABASE_URL: "postgresql://opslog:opslog_ci@localhost:5432/opslog"
           API_HOST: "127.0.0.1"
           API_PORT: "8600"
