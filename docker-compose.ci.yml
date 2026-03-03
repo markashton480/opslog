@@ -1,0 +1,31 @@
+# docker-compose.ci.yml — CI E2E test overrides
+# Used with: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d
+#
+# Differences from production:
+#   - Exposes API on host port 8600 for seed scripts
+#   - Injects test auth token into dashboard build
+#   - Removes resource limits (CI runners have enough memory)
+
+services:
+  api:
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    ports:
+      - "127.0.0.1:8600:8600"
+
+  dashboard:
+    build:
+      args:
+        VITE_OPSLOG_TOKEN: ${VITE_OPSLOG_TOKEN:-opslog_codex_b_test}
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  postgres:
+    deploy:
+      resources:
+        limits:
+          memory: 256M

@@ -31,6 +31,7 @@ services:
       - ./dashboard/index.html:/app/index.html
     environment:
       VITE_API_PROXY_TARGET: http://api:8600
+      VITE_OPSLOG_TOKEN: opslog_codex_b_test
     deploy:
       resources:
         limits:

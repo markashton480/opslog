@@ -39,7 +39,8 @@ opslog/
 │   └── Dockerfile          # Multi-stage production image
 ├── dashboard/              # React SPA
 │   ├── src/                # Components, pages, hooks, API client
-│   ├── tests/              # Vitest test suites
+│   ├── tests/              # Vitest unit test suites
+│   ├── e2e/                # Playwright E2E tests
 │   ├── Caddyfile           # Static serving + API reverse proxy
 │   └── Dockerfile          # Multi-stage: build → Caddy serve
 ├── deploy/                 # Deployment configuration
@@ -55,7 +56,9 @@ opslog/
 ├── docs/
 │   ├── spec.md             # Design specification
 │   ├── implementation.md   # Implementation plan
-│   └── runbook.md          # Operations runbook
+│   ├── runbook.md          # Operations runbook
+│   ├── agent-guide.md      # Agent usage guide (copy-paste examples)
+│   └── dashboard-guide.md  # Dashboard user guide
 ├── docker-compose.yml      # Production stack
 ├── docker-compose.dev.yml  # Development overrides
 ├── Makefile                # Build/test/deploy commands
@@ -113,6 +116,7 @@ See [docs/runbook.md](./docs/runbook.md) for the full operations runbook includi
 - Dashboard: typecheck → test → build
 - API: lint → test (with PostgreSQL service)
 - Docker: build both images
+- E2E: Playwright tests against full Docker stack
 
 **CD** — Automatic deployment via systemd timer on `lintel-tools-02`:
 - `opslog-deploy.timer` polls `origin/main` every 2 minutes
@@ -128,8 +132,33 @@ See [docs/runbook.md](./docs/runbook.md) for the full operations runbook includi
 - **Infrastructure**: Docker Compose + systemd
 - **CI/CD**: GitHub Actions (CI) + systemd timer auto-deploy (CD)
 
+## Testing
+
+```bash
+# Unit tests (API + Dashboard)
+make test
+
+# API tests only
+make test-api
+
+# Dashboard unit tests only
+make test-dash
+
+# Playwright E2E tests (requires running stack)
+make dev
+cd dashboard && npm run test:e2e
+
+# Smoke/load test
+./tests/smoke_test.sh
+
+# Agent integration dry-run
+./tests/agent_dryrun.sh
+```
+
 ## Design Docs
 
 - [Design Specification](./docs/spec.md)
 - [Implementation Plan](./docs/implementation.md)
 - [Operations Runbook](./docs/runbook.md)
+- [Agent Usage Guide](./docs/agent-guide.md)
+- [Dashboard User Guide](./docs/dashboard-guide.md)

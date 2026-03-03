@@ -1,4 +1,4 @@
-.PHONY: dev down test test-api test-dash lint format migrate seed tokens logs psql install-deps build up
+.PHONY: dev down test test-api test-dash test-e2e lint format migrate seed tokens logs psql install-deps build up
 
 # --- Development ---
 dev:
@@ -14,6 +14,9 @@ test-api:
 
 test-dash:
 	docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm dashboard npm test
+
+test-e2e:
+	cd dashboard && npx playwright test
 
 install-deps:
 	cd api && pip install -e ".[dev]"
