@@ -2,10 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 
 import { api, type QueryParams } from "@/api/client";
 
-export function useIssues(params?: QueryParams) {
+interface UseIssuesOptions {
+  refetchInterval?: number;
+}
+
+export function useIssues(params?: QueryParams, options?: UseIssuesOptions) {
   return useQuery({
     queryKey: ["issues", params],
     queryFn: () => api.issues.list(params),
+    refetchInterval: options?.refetchInterval,
   });
 }
 

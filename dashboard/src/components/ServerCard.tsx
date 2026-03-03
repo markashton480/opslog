@@ -52,7 +52,13 @@ export function ServerCard({ briefing }: ServerCardProps) {
       tabIndex={0}
       onClick={() => navigate(`/servers/${server.name}`)}
       onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") navigate(`/servers/${server.name}`);
+        if (e.currentTarget !== e.target) return;
+        if (e.key === " ") {
+          e.preventDefault();
+          navigate(`/servers/${server.name}`);
+        } else if (e.key === "Enter") {
+          navigate(`/servers/${server.name}`);
+        }
       }}
       className={`group cursor-pointer rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md hover:border-slate-300 ${borderClass}`}
       data-testid="server-card"
@@ -81,7 +87,7 @@ export function ServerCard({ briefing }: ServerCardProps) {
             className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold transition hover:opacity-80 ${issueCountColor(open_issues)}`}
             data-testid="issues-link"
           >
-            <span>{open_issues.length}</span>
+            <span>{summary.open_issue_count}</span>
             <span className="font-medium">issues</span>
           </Link>
         </div>

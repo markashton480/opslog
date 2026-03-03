@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import { EventRow } from "@/components/EventRow";
@@ -11,10 +11,6 @@ import { useEvents } from "@/hooks/useEvents";
 import { useIssues } from "@/hooks/useIssues";
 import type { Severity } from "@/api/types";
 
-function since48h(): string {
-  return new Date(Date.now() - 48 * 3600_000).toISOString();
-}
-
 const activeStatuses = ["open", "investigating", "watching"];
 
 export function ServerDetail() {
@@ -23,23 +19,32 @@ export function ServerDetail() {
 
   const briefingQuery = useBriefing(serverName, { refetchInterval: 30_000 });
 
-  // Events panel: server-filtered, last 48h, paginated
+  // Stable 48h boundary — only recalculated when the toggle or server changes
   const [showAllEvents, setShowAllEvents] = useState(false);
+  const sinceTimestamp = useMemo(
+    () => (showAllEvents ? undefined : new Date(Date.now() - 48 * 3600_000).toISOString()),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [showAllEvents, serverName],
+  );
+
   const eventsQuery = useEvents(
     {
       server: serverName,
-      since: showAllEvents ? undefined : since48h(),
+      since: sinceTimestamp,
       limit: 10,
     },
     { refetchInterval: 30_000 },
   );
 
-  // Issues panel: server-filtered, active statuses only
-  const issuesQuery = useIssues({
-    server: serverName,
-    status: activeStatuses.join(","),
-    limit: 50,
-  });
+  // Issues panel: server-filtered, active statuses only, 30s refresh
+  const issuesQuery = useIssues(
+    {
+      server: serverName,
+      status: activeStatuses.join(","),
+      limit: 50,
+    },
+    { refetchInterval: 30_000 },
+  );
 
   if (briefingQuery.isLoading) {
     return (
@@ -114,7 +119,7 @@ export function ServerDetail() {
         <StatCard label="Events (7d)" value={String(summary.events_last_7d)} />
         <StatCard
           label="Open issues"
-          value={String(open_issues.length)}
+          value={String(summary.open_issue_count)}
           extra={
             open_issues.length > 0 ? (
               <div className="mt-1 flex flex-wrap gap-1">

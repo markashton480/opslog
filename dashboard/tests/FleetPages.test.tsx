@@ -117,11 +117,18 @@ vi.mock("@/hooks/useIssues", () => ({
   useIssues: (...args: unknown[]) => useIssuesMock(...args),
 }));
 
-// FleetOverview uses useQueries via the api client — mock it
+// FleetOverview uses useQueries via the api client — provide valid shape
 vi.mock("@/api/client", () => ({
   api: {
     servers: {
-      briefing: vi.fn().mockResolvedValue({ data: {} }),
+      briefing: vi.fn().mockResolvedValue({
+        data: {
+          server: { id: "srv-1", name: "agent-workspace", display_name: "Agent Workspace", private_ipv4: "10.44.0.2", status: "active", notes: null, created_at: "2026-03-01T00:00:00Z", updated_at: "2026-03-01T00:00:00Z", aliases: [] },
+          summary: { events_last_24h: 0, events_last_7d: 0, open_issue_count: 0, last_deployment: null },
+          recent_events: [],
+          open_issues: [],
+        },
+      }),
     },
   },
 }));
