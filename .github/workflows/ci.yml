@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  dashboard:
+    name: Dashboard (lint, typecheck, test, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dashboard
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npx eslint .
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Test
+        run: npx vitest run
+
+      - name: Build
+        run: npx vite build
+
+  api:
+    name: API (lint, test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: opslog
+          POSTGRES_PASSWORD: opslog_ci
+          POSTGRES_DB: opslog
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U opslog -d opslog"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install uv
+          uv pip install --system ".[dev]"
+
+      - name: Lint
+        run: ruff check app/
+
+      - name: Test
+        run: pytest tests/ -v --tb=short
+        env:
+          DATABASE_URL: "postgresql://opslog:opslog_ci@localhost:5432/opslog"
+          API_HOST: "127.0.0.1"
+          API_PORT: "8600"
+
+  docker-build:
+    name: Docker build check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build API image
+        run: docker build -f api/Dockerfile -t opslog-api:ci .
+
+      - name: Build Dashboard image
+        run: docker build -f dashboard/Dockerfile -t opslog-dashboard:ci .

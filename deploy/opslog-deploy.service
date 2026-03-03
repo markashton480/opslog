@@ -1,0 +1,19 @@
+[Unit]
+Description=OpsLog auto-deploy (poll main branch)
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=codex_b
+Group=docker
+WorkingDirectory=/opt/opslog
+ExecStart=/opt/opslog/deploy/auto-deploy.sh
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=opslog-deploy
+
+# Prevent resource exhaustion
+MemoryMax=256M
+CPUQuota=50%
