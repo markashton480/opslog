@@ -18,8 +18,8 @@ from app.models import (
     IssueResponse,
     IssueUpdateCreate,
     IssueUpdateResponse,
-    RelateRequest,
     RelatedIssueResponse,
+    RelateRequest,
 )
 from app.pagination import CursorError, decode_cursor, encode_cursor
 

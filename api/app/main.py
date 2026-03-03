@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 
-from fastapi.encoders import jsonable_encoder
 from fastapi import FastAPI
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException

@@ -9,7 +9,14 @@ from fastapi.responses import JSONResponse
 from app.auth import require_roles
 from app.db import connection
 from app.enums import Role
-from app.models import AliasCreate, BriefingResponse, EventResponse, IssueResponse, ServerResponse, ServerUpsert
+from app.models import (
+    AliasCreate,
+    BriefingResponse,
+    EventResponse,
+    IssueResponse,
+    ServerResponse,
+    ServerUpsert,
+)
 
 router = APIRouter(prefix="/api/v1", tags=["servers"])
 BRIEFING_EVENTS_LIMIT = 200

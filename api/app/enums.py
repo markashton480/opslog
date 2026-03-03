@@ -1,13 +1,13 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class Role(str, Enum):
+class Role(StrEnum):
     admin = "admin"
     writer = "writer"
     reader = "reader"
 
 
-class EventCategory(str, Enum):
+class EventCategory(StrEnum):
     deployment = "deployment"
     config_change = "config_change"
     dns = "dns"
@@ -22,7 +22,7 @@ class EventCategory(str, Enum):
     other = "other"
 
 
-class IssueStatus(str, Enum):
+class IssueStatus(StrEnum):
     open = "open"
     investigating = "investigating"
     watching = "watching"
@@ -30,20 +30,20 @@ class IssueStatus(str, Enum):
     wontfix = "wontfix"
 
 
-class Severity(str, Enum):
+class Severity(StrEnum):
     critical = "critical"
     high = "high"
     medium = "medium"
     low = "low"
 
 
-class RelationshipType(str, Enum):
+class RelationshipType(StrEnum):
     related = "related"
     caused_by = "caused_by"
     duplicate_of = "duplicate_of"
 
 
-class ServerStatus(str, Enum):
+class ServerStatus(StrEnum):
     active = "active"
     decommissioned = "decommissioned"
 
