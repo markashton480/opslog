@@ -33,10 +33,13 @@ async def db_conn(prepared_database) -> AsyncIterator[asyncpg.Connection]:
                 events,
                 issue_updates,
                 related_issues,
-                issues
+                issues,
+                server_aliases,
+                servers
             RESTART IDENTITY CASCADE
             """
         )
+        await seed(dsn)
         await conn.execute("UPDATE principals SET last_seen_at = NULL")
         yield conn
     finally:
