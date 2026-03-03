@@ -17,6 +17,7 @@ interface UseEventsResult {
   isFetchingNextPage: boolean;
   loadMore: () => Promise<unknown>;
   dataUpdatedAt: number;
+  pageCount: number;
 }
 
 export function useEvents(params?: QueryParams, options?: UseEventsOptions): UseEventsResult {
@@ -45,6 +46,7 @@ export function useEvents(params?: QueryParams, options?: UseEventsOptions): Use
     isFetchingNextPage: query.isFetchingNextPage,
     loadMore: () => query.fetchNextPage(),
     dataUpdatedAt: query.dataUpdatedAt,
+    pageCount: pages.length,
   };
 }
 

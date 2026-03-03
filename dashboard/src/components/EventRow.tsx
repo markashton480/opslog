@@ -36,15 +36,21 @@ export function EventRow({ event }: EventRowProps) {
   const hasExpandableContent =
     event.detail || Object.keys(event.metadata).length > 0 || event.corrects_event_id || event.issue_id;
 
+  const toggleExpand = () => {
+    if (hasExpandableContent) setExpanded(!expanded);
+  };
+
   return (
     <article
       className="group rounded-lg border border-slate-200 bg-white transition-shadow hover:shadow-md"
       data-testid="event-row"
     >
-      {/* Compact row */}
-      <button
-        type="button"
-        onClick={() => hasExpandableContent && setExpanded(!expanded)}
+      {/* Compact row — div with onClick for expand, links use stopPropagation */}
+      <div
+        role="button"
+        tabIndex={hasExpandableContent ? 0 : undefined}
+        onClick={toggleExpand}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") toggleExpand(); }}
         className={`flex w-full items-start gap-3 p-3 text-left sm:items-center ${hasExpandableContent ? "cursor-pointer" : "cursor-default"}`}
         aria-expanded={hasExpandableContent ? expanded : undefined}
       >
@@ -63,11 +69,16 @@ export function EventRow({ event }: EventRowProps) {
           <PrincipalAvatar principal={event.principal} compact />
         </div>
 
-        {/* Server name */}
+        {/* Server name — clickable link to Server Detail */}
         {event.server_name && (
-          <span className="hidden shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-600 sm:inline-block">
+          <Link
+            to={`/servers/${event.server_name}`}
+            onClick={(e) => e.stopPropagation()}
+            className="hidden shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 sm:inline-block"
+            data-testid="server-link"
+          >
             {event.server_name}
-          </span>
+          </Link>
         )}
 
         {/* Category */}
@@ -99,11 +110,17 @@ export function EventRow({ event }: EventRowProps) {
           )}
         </div>
 
-        {/* Issue link indicator */}
+        {/* Issue link — clickable link to Issue Detail */}
         {event.issue_id && (
-          <span className="shrink-0 text-xs text-indigo-500" title="Linked to issue">
-            🔗
-          </span>
+          <Link
+            to={`/issues/${event.issue_id}`}
+            onClick={(e) => e.stopPropagation()}
+            className="shrink-0 rounded bg-indigo-50 px-1.5 py-0.5 text-xs font-medium text-indigo-600 transition hover:bg-indigo-100"
+            title="View linked issue"
+            data-testid="issue-link"
+          >
+            Issue ↗
+          </Link>
         )}
 
         {/* Expand indicator */}
@@ -112,7 +129,7 @@ export function EventRow({ event }: EventRowProps) {
             {expanded ? "▾" : "▸"}
           </span>
         )}
-      </button>
+      </div>
 
       {/* Expanded detail */}
       {expanded && (
@@ -151,7 +168,6 @@ export function EventRow({ event }: EventRowProps) {
               <Link
                 to={`/issues/${event.issue_id}`}
                 className="inline-flex items-center gap-1 text-indigo-600 hover:underline"
-                onClick={(e) => e.stopPropagation()}
               >
                 View linked issue →
               </Link>
@@ -160,7 +176,6 @@ export function EventRow({ event }: EventRowProps) {
               <Link
                 to={`/servers/${event.server_name}`}
                 className="inline-flex items-center gap-1 text-slate-500 hover:text-slate-700 hover:underline"
-                onClick={(e) => e.stopPropagation()}
               >
                 {event.server_name} detail →
               </Link>

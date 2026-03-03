@@ -73,6 +73,7 @@ vi.mock("@/hooks/useEvents", () => ({
     isFetchingNextPage: false,
     loadMore: loadMoreSpy,
     dataUpdatedAt: Date.now(),
+    pageCount: 1,
   }),
 }));
 
@@ -213,5 +214,29 @@ describe("EventRow expand/collapse", () => {
 
     expect(screen.getByText("release")).toBeInTheDocument();
     expect(screen.getByText("hotfix")).toBeInTheDocument();
+  });
+
+  it("renders server name as a clickable link in compact row", () => {
+    mockEventsData = [
+      makeEvent({ summary: "Deploy event", server_name: "lintel-prod-01" }),
+    ];
+    renderEventStream();
+
+    const serverLink = screen.getByTestId("server-link");
+    expect(serverLink).toBeInTheDocument();
+    expect(serverLink.tagName).toBe("A");
+    expect(serverLink).toHaveAttribute("href", "/servers/lintel-prod-01");
+  });
+
+  it("renders issue link as a clickable link in compact row", () => {
+    mockEventsData = [
+      makeEvent({ summary: "Issue event", issue_id: "issue-uuid-123" }),
+    ];
+    renderEventStream();
+
+    const issueLink = screen.getByTestId("issue-link");
+    expect(issueLink).toBeInTheDocument();
+    expect(issueLink.tagName).toBe("A");
+    expect(issueLink).toHaveAttribute("href", "/issues/issue-uuid-123");
   });
 });
