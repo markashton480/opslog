@@ -33,7 +33,9 @@ function filtersFromParams(params: URLSearchParams): IssueFilterValues {
   const statusRaw = params.get("status");
   const sevRaw = params.get("severity");
   return {
-    statuses: statusRaw ? (statusRaw.split(",") as IssueStatus[]) : [...ACTIVE_STATUSES],
+    statuses: statusRaw !== null
+      ? (statusRaw === "" ? [] : statusRaw.split(",") as IssueStatus[])
+      : [...ACTIVE_STATUSES],
     severities: sevRaw ? (sevRaw.split(",") as Severity[]) : [],
     server: params.get("server") ?? "",
     tag: params.get("tag") ?? "",
@@ -42,8 +44,9 @@ function filtersFromParams(params: URLSearchParams): IssueFilterValues {
 
 function paramsFromFilters(f: IssueFilterValues): Record<string, string> {
   const p: Record<string, string> = {};
-  if (f.statuses.length > 0 && !(f.statuses.length === ACTIVE_STATUSES.length && ACTIVE_STATUSES.every((s) => f.statuses.includes(s)))) {
-    p.status = f.statuses.join(",");
+  const isDefault = f.statuses.length === ACTIVE_STATUSES.length && ACTIVE_STATUSES.every((s) => f.statuses.includes(s));
+  if (!isDefault) {
+    p.status = f.statuses.join(","); // empty string signals "none selected"
   }
   if (f.severities.length > 0) p.severity = f.severities.join(",");
   if (f.server) p.server = f.server;
@@ -63,7 +66,7 @@ function compareIssues(a: Issue, b: Issue, field: SortField, dir: SortDir): numb
   switch (field) {
     case "title": cmp = a.title.localeCompare(b.title); break;
     case "status": cmp = statusOrder[a.status] - statusOrder[b.status]; break;
-    case "severity": cmp = severityRank[b.severity] - severityRank[a.severity]; break;
+    case "severity": cmp = severityRank[a.severity] - severityRank[b.severity]; break;
     case "server": cmp = (a.server_name ?? "").localeCompare(b.server_name ?? ""); break;
     case "created_by": cmp = a.created_by.localeCompare(b.created_by); break;
     case "first_seen": cmp = new Date(a.first_seen).getTime() - new Date(b.first_seen).getTime(); break;
@@ -241,6 +244,10 @@ export function IssuesBoard() {
                   <th
                     key={field}
                     onClick={() => toggleSort(field)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleSort(field); } }}
+                    tabIndex={0}
+                    role="columnheader"
+                    aria-sort={sortField === field ? (sortDir === "asc" ? "ascending" : "descending") : undefined}
                     className="cursor-pointer whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 hover:text-slate-700 select-none"
                   >
                     {label}{sortIndicator(field)}

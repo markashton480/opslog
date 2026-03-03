@@ -20,6 +20,8 @@ function renderChanges(changes: Record<string, unknown>): string[] {
       const label = field.replace(/_/g, " ");
       if (d.from === null) {
         lines.push(`Set ${label} to "${d.to}"`);
+      } else if (d.to === null) {
+        lines.push(`Cleared ${label}`);
       } else {
         lines.push(`Changed ${label} from "${d.from}" to "${d.to}"`);
       }

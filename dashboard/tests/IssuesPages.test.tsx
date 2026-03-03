@@ -118,15 +118,6 @@ vi.mock("@/api/client", () => ({
   },
 }));
 
-function renderWithProviders(ui: React.ReactElement, { route = "/" }: { route?: string } = {}) {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>
-    </QueryClientProvider>,
-  );
-}
-
 function renderRoute(route: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(

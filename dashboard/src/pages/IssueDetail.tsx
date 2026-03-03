@@ -126,8 +126,8 @@ export function IssueDetail() {
       items.push({ kind: "event", data: e });
     }
     items.sort((a, b) => {
-      const tA = a.kind === "update" ? a.data.occurred_at : a.data.occurred_at;
-      const tB = b.kind === "update" ? b.data.occurred_at : b.data.occurred_at;
+      const tA = a.data.occurred_at;
+      const tB = b.data.occurred_at;
       return new Date(tA).getTime() - new Date(tB).getTime();
     });
     return items;

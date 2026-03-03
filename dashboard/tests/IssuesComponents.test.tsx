@@ -1,6 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { TimelineEntry, type TimelineItem } from "@/components/TimelineEntry";
 import {
@@ -147,7 +146,7 @@ describe("IssueFilterBar", () => {
     renderFilterBar();
     const select = screen.getByLabelText("Server") as HTMLSelectElement;
     expect(select).toBeInTheDocument();
-    expect(select.options.length).toBe(3); // All servers + 2 options
+    expect(select.options.length).toBe(3); // 1 default "All servers" option + 2 server options = 3 total
   });
 
   it("renders tag input", () => {
@@ -167,8 +166,6 @@ describe("IssueFilterBar", () => {
 });
 
 /* ── Exports/constants ────────────────────────────────────── */
-
-import { vi } from "vitest";
 
 describe("IssueFilterBar constants", () => {
   it("ACTIVE_STATUSES contains open, investigating, watching", () => {
