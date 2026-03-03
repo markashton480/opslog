@@ -1,0 +1,10 @@
+# Host-level Caddy config for opslog.lintel.digital
+# Merge this into the host's main Caddyfile or import it.
+#
+# This handles TLS termination via ACME and proxies all traffic
+# to the dashboard Caddy container, which in turn handles
+# path-based routing between the SPA and the API.
+
+opslog.lintel.digital {
+	reverse_proxy localhost:8601
+}

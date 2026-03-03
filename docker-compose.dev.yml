@@ -1,10 +1,25 @@
-version: "3.8"
-
 services:
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: opslog
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
   api:
     volumes:
-      - ./api:/app
+      - ./api/app:/app/app
+      - ./api/migrations:/app/migrations
+      - ./api/scripts:/app/scripts
+      - ./api/tests:/app/tests
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://opslog:opslog@postgres:5432/opslog"
     command: uvicorn app.main:app --host 0.0.0.0 --port 8600 --reload
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   dashboard:
     build:
@@ -14,7 +29,9 @@ services:
       - ./dashboard/src:/app/src
       - ./dashboard/tests:/app/tests
       - ./dashboard/index.html:/app/index.html
-    ports:
-      - "8601:8601"
     environment:
-      VITE_OPSLOG_API_URL: http://host.docker.internal:8600/api/v1
+      VITE_API_PROXY_TARGET: http://api:8600
+    deploy:
+      resources:
+        limits:
+          memory: 512M
