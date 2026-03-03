@@ -1,9 +1,15 @@
-version: "3.8"
-
 services:
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: opslog
+
   api:
     volumes:
-      - ./api:/app
+      - ./api/app:/app/app
+      - ./api/migrations:/app/migrations
+      - ./api/scripts:/app/scripts
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://opslog:opslog@postgres:5432/opslog"
     command: uvicorn app.main:app --host 0.0.0.0 --port 8600 --reload
 
   dashboard:

@@ -1,10 +1,31 @@
 :8601 {
-	root * /var/www/html
-	try_files {path} /index.html
-	
- encode {
-		gzip
+	# Reverse proxy API requests to backend
+	handle /api/v1/* {
+		reverse_proxy api:8600
 	}
-	
- respond /health 200
+
+	# Serve static dashboard files
+	handle {
+		root * /var/www/html
+		try_files {path} /index.html
+		file_server
+
+		# Cache hashed static assets aggressively
+		@static path *.js *.css *.woff2 *.woff *.ttf *.svg *.png *.jpg *.ico
+		header @static Cache-Control "public, max-age=31536000, immutable"
+
+		# No-cache for HTML shell
+		@html path /
+		header @html Cache-Control "no-cache, no-store, must-revalidate"
+	}
+
+	encode gzip
+
+	# Security headers
+	header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"
+	header X-Content-Type-Options "nosniff"
+	header X-Frame-Options "DENY"
+	header Referrer-Policy "strict-origin-when-cross-origin"
+
+	respond /health 200
 }
