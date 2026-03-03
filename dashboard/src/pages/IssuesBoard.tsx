@@ -66,7 +66,15 @@ function compareIssues(a: Issue, b: Issue, field: SortField, dir: SortDir): numb
   switch (field) {
     case "title": cmp = a.title.localeCompare(b.title); break;
     case "status": cmp = statusOrder[a.status] - statusOrder[b.status]; break;
-    case "severity": cmp = severityRank[a.severity] - severityRank[b.severity]; break;
+    case "severity": {
+      cmp = severityRank[a.severity] - severityRank[b.severity];
+      // Tiebreak: last_occurrence DESC (most recent first)
+      if (cmp === 0) {
+        cmp = new Date(a.last_occurrence).getTime() - new Date(b.last_occurrence).getTime();
+        // Apply same direction so tiebreak follows primary sort direction
+      }
+      break;
+    }
     case "server": cmp = (a.server_name ?? "").localeCompare(b.server_name ?? ""); break;
     case "created_by": cmp = a.created_by.localeCompare(b.created_by); break;
     case "first_seen": cmp = new Date(a.first_seen).getTime() - new Date(b.first_seen).getTime(); break;
@@ -98,6 +106,7 @@ export function IssuesBoard() {
   );
 
   // Build API params from filters
+  const noStatusSelected = filters.statuses.length === 0;
   const apiParams = useMemo(() => {
     const p: Record<string, string> = { limit: "100" };
     if (filters.statuses.length > 0) p.status = filters.statuses.join(",");
@@ -107,7 +116,7 @@ export function IssuesBoard() {
     return p;
   }, [filters]);
 
-  const issuesQuery = useIssues(apiParams, { refetchInterval: 60_000 });
+  const issuesQuery = useIssues(noStatusSelected ? undefined : apiParams, { refetchInterval: 60_000, enabled: !noStatusSelected });
   const serversQuery = useServers();
 
   const allIssues = useMemo(() => issuesQuery.data?.data ?? [], [issuesQuery.data?.data]);

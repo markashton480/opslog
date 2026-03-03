@@ -4,6 +4,7 @@ import { api, type QueryParams } from "@/api/client";
 
 interface UseIssuesOptions {
   refetchInterval?: number;
+  enabled?: boolean;
 }
 
 export function useIssues(params?: QueryParams, options?: UseIssuesOptions) {
@@ -11,6 +12,7 @@ export function useIssues(params?: QueryParams, options?: UseIssuesOptions) {
     queryKey: ["issues", params],
     queryFn: () => api.issues.list(params),
     refetchInterval: options?.refetchInterval,
+    enabled: options?.enabled,
   });
 }
 
