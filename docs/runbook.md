@@ -185,7 +185,7 @@ sudo systemctl start opslog-deploy.service
 ### CI (GitHub Actions)
 
 Runs automatically on every PR and push to `main`:
-- **Dashboard**: ESLint → TypeScript check → Vitest → Vite build
+- **Dashboard**: TypeScript check → Vitest → Vite build
 - **API**: Ruff lint → Pytest (with PostgreSQL service container)
 - **Docker**: Build both images to verify Dockerfiles
 

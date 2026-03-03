@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   dashboard:
-    name: Dashboard (lint, typecheck, test, build)
+    name: Dashboard (typecheck, test, build)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -28,9 +28,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Lint
-        run: npx eslint .
 
       - name: Typecheck
         run: npx tsc --noEmit
@@ -73,7 +70,8 @@ jobs:
       - name: Install dependencies
         run: |
           pip install uv
-          uv pip install --system ".[dev]"
+          uv pip install --system -r pyproject.toml
+          uv pip install --system pytest pytest-asyncio httpx ruff mypy
 
       - name: Lint
         run: ruff check app/

@@ -110,7 +110,7 @@ See [docs/runbook.md](./docs/runbook.md) for the full operations runbook includi
 ## CI/CD
 
 **CI** — GitHub Actions runs on every PR and push to `main`:
-- Dashboard: lint → typecheck → test → build
+- Dashboard: typecheck → test → build
 - API: lint → test (with PostgreSQL service)
 - Docker: build both images
 
