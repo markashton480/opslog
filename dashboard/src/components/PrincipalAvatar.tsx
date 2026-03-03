@@ -29,9 +29,21 @@ function colorForPrincipal(principal: string): string {
 
 interface PrincipalAvatarProps {
   principal: string;
+  compact?: boolean;
 }
 
-export function PrincipalAvatar({ principal }: PrincipalAvatarProps) {
+export function PrincipalAvatar({ principal, compact }: PrincipalAvatarProps) {
+  if (compact) {
+    return (
+      <span
+        className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold text-white ${colorForPrincipal(principal)}`}
+        title={principal}
+      >
+        {initialsFromPrincipal(principal)}
+      </span>
+    );
+  }
+
   return (
     <span className="inline-flex items-center gap-2">
       <span
