@@ -81,7 +81,15 @@ function renderApp() {
 }
 
 describe("App routing", () => {
+  it("redirects unknown route to fleet overview", async () => {
+    window.history.pushState({}, "", "/unknown-route");
+    renderApp();
+
+    expect(await screen.findByRole("heading", { level: 2, name: "Fleet Overview" })).toBeInTheDocument();
+  });
+
   it("navigates between main dashboard routes", async () => {
+    window.history.pushState({}, "", "/");
     renderApp();
 
     expect(screen.getByRole("heading", { level: 2, name: "Fleet Overview" })).toBeInTheDocument();

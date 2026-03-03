@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  Navigate,
   NavLink,
   Outlet,
   createBrowserRouter,
@@ -41,6 +42,8 @@ function AppLayout() {
           <button
             type="button"
             onClick={() => setSidebarOpen((open) => !open)}
+            aria-expanded={sidebarOpen}
+            aria-controls="opslog-sidebar"
             className="rounded-md border border-slate-300 px-3 py-1 text-sm lg:hidden"
           >
             {sidebarOpen ? "Close" : "Menu"}
@@ -49,7 +52,10 @@ function AppLayout() {
       </header>
 
       <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[260px_1fr] lg:px-8">
-        <aside className={`${sidebarOpen ? "block" : "hidden"} rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:block`}>
+        <aside
+          id="opslog-sidebar"
+          className={`${sidebarOpen ? "block" : "hidden"} rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:block`}
+        >
           <nav className="space-y-1">
             <NavLink to="/" end className={navClassName}>
               Fleet Overview
@@ -95,6 +101,7 @@ export const appRoutes: RouteObject[] = [
       { path: "issues", element: <IssuesBoard /> },
       { path: "issues/:id", element: <IssueDetail /> },
       { path: "servers/:name", element: <ServerDetail /> },
+      { path: "*", element: <Navigate to="/" replace /> },
     ],
   },
 ];

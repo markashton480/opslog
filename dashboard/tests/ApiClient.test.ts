@@ -44,5 +44,8 @@ describe("API client", () => {
     vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
 
     await expect(api.servers.list()).rejects.toBeInstanceOf(ApiError);
+    await expect(api.servers.list()).rejects.toMatchObject({
+      message: expect.stringContaining("403"),
+    });
   });
 });

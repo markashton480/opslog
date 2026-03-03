@@ -41,14 +41,24 @@ export function FilterBar({
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="grid gap-3 md:grid-cols-4">
+        <label htmlFor="filter-search" className="sr-only">
+          Search summary
+        </label>
         <input
+          id="filter-search"
+          aria-label="Search summary"
           name="search"
           value={values.search}
           onChange={(event) => updateValue(event, values, onChange)}
           placeholder="Search summary"
           className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
         />
+        <label htmlFor="filter-server" className="sr-only">
+          Server filter
+        </label>
         <select
+          id="filter-server"
+          aria-label="Server filter"
           name="server"
           value={values.server}
           onChange={(event) => updateValue(event, values, onChange)}
@@ -61,7 +71,12 @@ export function FilterBar({
             </option>
           ))}
         </select>
+        <label htmlFor="filter-category" className="sr-only">
+          Category filter
+        </label>
         <select
+          id="filter-category"
+          aria-label="Category filter"
           name="category"
           value={values.category}
           onChange={(event) => updateValue(event, values, onChange)}
@@ -74,7 +89,12 @@ export function FilterBar({
             </option>
           ))}
         </select>
+        <label htmlFor="filter-principal" className="sr-only">
+          Principal filter
+        </label>
         <select
+          id="filter-principal"
+          aria-label="Principal filter"
           name="principal"
           value={values.principal}
           onChange={(event) => updateValue(event, values, onChange)}

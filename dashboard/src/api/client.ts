@@ -28,6 +28,24 @@ export class ApiError extends Error {
   }
 }
 
+function formatErrorMessage(path: string, response: Response, payload: unknown): string {
+  const base = `API request failed for ${path}: ${response.status} ${response.statusText || ""}`.trim();
+  if (!payload || typeof payload !== "object") {
+    return base;
+  }
+
+  const data = (payload as { data?: unknown }).data;
+  if (!data || typeof data !== "object") {
+    return base;
+  }
+
+  const error = (data as { error?: unknown }).error;
+  if (typeof error === "string" && error.length > 0) {
+    return `${base} (${error})`;
+  }
+  return base;
+}
+
 function buildQuery(params?: QueryParams): string {
   if (!params) {
     return "";
@@ -75,7 +93,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<ApiRespo
 
   const payload = await parseJson(response);
   if (!response.ok) {
-    throw new ApiError(`API request failed for ${path}`, response.status, payload);
+    throw new ApiError(formatErrorMessage(path, response, payload), response.status, payload);
   }
 
   return payload as ApiResponse<T>;
@@ -89,7 +107,7 @@ async function requestList<T>(path: string, params?: QueryParams): Promise<ApiLi
 
   const payload = await parseJson(response);
   if (!response.ok) {
-    throw new ApiError(`API request failed for ${path}`, response.status, payload);
+    throw new ApiError(formatErrorMessage(path, response, payload), response.status, payload);
   }
 
   return payload as ApiListResponse<T>;
