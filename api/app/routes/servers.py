@@ -12,6 +12,8 @@ from app.enums import Role
 from app.models import AliasCreate, BriefingResponse, EventResponse, IssueResponse, ServerResponse, ServerUpsert
 
 router = APIRouter(prefix="/api/v1", tags=["servers"])
+BRIEFING_EVENTS_LIMIT = 200
+BRIEFING_OPEN_ISSUES_LIMIT = 100
 
 
 async def _resolve_server(conn, name: str):
@@ -110,7 +112,11 @@ async def list_servers(request: Request):
         rows = await conn.fetch(
             """
             SELECT
-                s.*, COALESCE(array_agg(sa.alias_name) FILTER (WHERE sa.alias_name IS NOT NULL), '{}') AS aliases
+                s.*,
+                COALESCE(
+                    array_agg(sa.alias_name ORDER BY sa.alias_name) FILTER (WHERE sa.alias_name IS NOT NULL),
+                    '{}'
+                ) AS aliases
             FROM servers s
             LEFT JOIN server_aliases sa ON sa.server_id = s.id
             GROUP BY s.id
@@ -138,8 +144,10 @@ async def server_briefing(name: str, request: Request):
             WHERE server_id = $1
               AND ingested_at >= NOW() - INTERVAL '48 hours'
             ORDER BY ingested_at DESC, id DESC
+            LIMIT $2
             """,
             server["id"],
+            BRIEFING_EVENTS_LIMIT,
         )
         open_issues = await conn.fetch(
             """
@@ -148,8 +156,10 @@ async def server_briefing(name: str, request: Request):
             WHERE server_id = $1
               AND status IN ('open', 'investigating', 'watching')
             ORDER BY updated_at DESC, id DESC
+            LIMIT $2
             """,
             server["id"],
+            BRIEFING_OPEN_ISSUES_LIMIT,
         )
         summary_row = await conn.fetchrow(
             """
@@ -227,7 +237,10 @@ async def create_server_alias(name: str, payload: AliasCreate, request: Request)
 
     return JSONResponse(
         status_code=201,
-        content={"data": {"server_id": str(server["id"]), "aliases": aliases}, "warnings": []},
+        content={
+            "data": {"server_id": str(server["id"]), "aliases": aliases},
+            "warnings": list(request.state.warnings),
+        },
     )
 
 
@@ -248,4 +261,7 @@ async def delete_server_alias(name: str, alias: str, request: Request):
 
         aliases = await _aliases_for_server(conn, server["id"])
 
-    return {"data": {"server_id": str(server["id"]), "aliases": aliases}, "warnings": []}
+    return {
+        "data": {"server_id": str(server["id"]), "aliases": aliases},
+        "warnings": list(request.state.warnings),
+    }

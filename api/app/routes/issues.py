@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from asyncpg import ForeignKeyViolationError, UniqueViolationError
+from asyncpg import CheckViolationError, ForeignKeyViolationError, UniqueViolationError
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
@@ -26,7 +26,7 @@ from app.pagination import CursorError, decode_cursor, encode_cursor
 router = APIRouter(prefix="/api/v1", tags=["issues"])
 
 _ALLOWED_TRANSITIONS: dict[IssueStatus, set[IssueStatus]] = {
-    IssueStatus.open: {IssueStatus.open, IssueStatus.investigating, IssueStatus.resolved, IssueStatus.wontfix},
+    IssueStatus.open: {IssueStatus.open, IssueStatus.investigating, IssueStatus.wontfix},
     IssueStatus.investigating: {
         IssueStatus.investigating,
         IssueStatus.watching,
@@ -342,119 +342,124 @@ async def patch_issue(issue_id: UUID, payload: IssuePatch, request: Request):
     if not patch_data:
         raise HTTPException(status_code=422, detail="no_fields_to_update")
 
-    async with connection() as conn:
-        async with conn.transaction():
-            current = await conn.fetchrow("SELECT * FROM issues WHERE id = $1 FOR UPDATE", issue_id)
-            if current is None:
-                raise HTTPException(status_code=404, detail="issue_not_found")
+    try:
+        async with connection() as conn:
+            async with conn.transaction():
+                current = await conn.fetchrow("SELECT * FROM issues WHERE id = $1 FOR UPDATE", issue_id)
+                if current is None:
+                    raise HTTPException(status_code=404, detail="issue_not_found")
 
-            if current["version"] != expected_version:
-                return JSONResponse(
-                    status_code=409,
-                    content={
-                        "data": {"error": "version_conflict", "current": _row_to_issue(current)},
-                        "warnings": warnings,
-                    },
+                if current["version"] != expected_version:
+                    return JSONResponse(
+                        status_code=409,
+                        content={
+                            "data": {"error": "version_conflict", "current": _row_to_issue(current)},
+                            "warnings": warnings,
+                        },
+                    )
+
+                updates: dict[str, Any] = {}
+                changes: dict[str, dict[str, Any]] = {}
+
+                if "status" in patch_data:
+                    target_status = IssueStatus(patch_data["status"])
+                    source_status = IssueStatus(current["status"])
+                    if target_status not in _ALLOWED_TRANSITIONS[source_status]:
+                        raise HTTPException(
+                            status_code=422,
+                            detail=f"invalid status transition: {source_status.value} -> {target_status.value}",
+                        )
+                    if target_status != source_status:
+                        updates["status"] = target_status.value
+                        changes["status"] = {"from": source_status.value, "to": target_status.value}
+                        if target_status in {IssueStatus.resolved, IssueStatus.wontfix}:
+                            updates["resolved_at"] = datetime.now(UTC)
+                            changes["resolved_at"] = {
+                                "from": current["resolved_at"],
+                                "to": updates["resolved_at"],
+                            }
+                        elif source_status in {IssueStatus.resolved, IssueStatus.wontfix}:
+                            updates["resolved_at"] = None
+                            changes["resolved_at"] = {"from": current["resolved_at"], "to": None}
+
+                if "severity" in patch_data:
+                    new_severity = Severity(patch_data["severity"]).value
+                    if new_severity != current["severity"]:
+                        updates["severity"] = new_severity
+                        changes["severity"] = {"from": current["severity"], "to": new_severity}
+
+                if "title" in patch_data and patch_data["title"] != current["title"]:
+                    updates["title"] = patch_data["title"]
+                    changes["title"] = {"from": current["title"], "to": patch_data["title"]}
+
+                if (
+                    "last_occurrence" in patch_data
+                    and patch_data["last_occurrence"] != current["last_occurrence"]
+                ):
+                    updates["last_occurrence"] = patch_data["last_occurrence"]
+                    changes["last_occurrence"] = {
+                        "from": current["last_occurrence"],
+                        "to": patch_data["last_occurrence"],
+                    }
+
+                for field_name in ["symptoms", "root_cause", "solution", "tags"]:
+                    if field_name in patch_data and patch_data[field_name] != current[field_name]:
+                        updates[field_name] = patch_data[field_name]
+                        changes[field_name] = {"from": current[field_name], "to": patch_data[field_name]}
+
+                if "metadata" in patch_data:
+                    current_metadata = _as_json_object(current["metadata"])
+                    if patch_data["metadata"] != current_metadata:
+                        updates["metadata"] = json.dumps(patch_data["metadata"])
+                        changes["metadata"] = {"from": current_metadata, "to": patch_data["metadata"]}
+
+                if "server" in patch_data:
+                    server_name = patch_data["server"]
+                    server_id = await _resolve_server_id(conn, server_name)
+                    if server_name and server_id is None:
+                        warnings.append(f"unknown-server: {server_name}")
+
+                    if server_id != current["server_id"]:
+                        updates["server_id"] = server_id
+                        changes["server_id"] = {"from": current["server_id"], "to": server_id}
+                    if server_name != current["server_name"]:
+                        updates["server_name"] = server_name
+                        changes["server_name"] = {"from": current["server_name"], "to": server_name}
+
+                if not updates:
+                    return {"data": _row_to_issue(current), "warnings": warnings}
+
+                set_clauses: list[str] = []
+                params: list[Any] = []
+                for idx, (field_name, field_value) in enumerate(updates.items(), start=1):
+                    set_clauses.append(f"{field_name} = ${idx}")
+                    params.append(field_value)
+
+                params.append(issue_id)
+                updated = await conn.fetchrow(
+                    f"""
+                    UPDATE issues
+                    SET {', '.join(set_clauses)}
+                    WHERE id = ${len(params)}
+                    RETURNING *
+                    """,
+                    *params,
                 )
 
-            updates: dict[str, Any] = {}
-            changes: dict[str, dict[str, Any]] = {}
-
-            if "status" in patch_data:
-                target_status = IssueStatus(patch_data["status"])
-                source_status = IssueStatus(current["status"])
-                if target_status not in _ALLOWED_TRANSITIONS[source_status]:
-                    raise HTTPException(
-                        status_code=422,
-                        detail=f"invalid status transition: {source_status.value} -> {target_status.value}",
-                    )
-                if target_status != source_status:
-                    updates["status"] = target_status.value
-                    changes["status"] = {"from": source_status.value, "to": target_status.value}
-
-                if target_status in {IssueStatus.resolved, IssueStatus.wontfix}:
-                    updates["resolved_at"] = datetime.now(UTC)
-                    changes["resolved_at"] = {
-                        "from": current["resolved_at"],
-                        "to": updates["resolved_at"],
-                    }
-                elif source_status in {IssueStatus.resolved, IssueStatus.wontfix}:
-                    updates["resolved_at"] = None
-                    changes["resolved_at"] = {"from": current["resolved_at"], "to": None}
-
-            if "severity" in patch_data:
-                new_severity = Severity(patch_data["severity"]).value
-                if new_severity != current["severity"]:
-                    updates["severity"] = new_severity
-                    changes["severity"] = {"from": current["severity"], "to": new_severity}
-
-            if "title" in patch_data and patch_data["title"] != current["title"]:
-                updates["title"] = patch_data["title"]
-                changes["title"] = {"from": current["title"], "to": patch_data["title"]}
-
-            if "last_occurrence" in patch_data and patch_data["last_occurrence"] != current["last_occurrence"]:
-                updates["last_occurrence"] = patch_data["last_occurrence"]
-                changes["last_occurrence"] = {
-                    "from": current["last_occurrence"],
-                    "to": patch_data["last_occurrence"],
-                }
-
-            for field_name in ["symptoms", "root_cause", "solution", "tags"]:
-                if field_name in patch_data and patch_data[field_name] != current[field_name]:
-                    updates[field_name] = patch_data[field_name]
-                    changes[field_name] = {"from": current[field_name], "to": patch_data[field_name]}
-
-            if "metadata" in patch_data:
-                current_metadata = _as_json_object(current["metadata"])
-                if patch_data["metadata"] != current_metadata:
-                    updates["metadata"] = json.dumps(patch_data["metadata"])
-                    changes["metadata"] = {"from": current_metadata, "to": patch_data["metadata"]}
-
-            if "server" in patch_data:
-                server_name = patch_data["server"]
-                server_id = await _resolve_server_id(conn, server_name)
-                if server_name and server_id is None:
-                    warnings.append(f"unknown-server: {server_name}")
-
-                if server_id != current["server_id"]:
-                    updates["server_id"] = server_id
-                    changes["server_id"] = {"from": current["server_id"], "to": server_id}
-                if server_name != current["server_name"]:
-                    updates["server_name"] = server_name
-                    changes["server_name"] = {"from": current["server_name"], "to": server_name}
-
-            if not updates:
-                return {"data": _row_to_issue(current), "warnings": warnings}
-
-            set_clauses: list[str] = []
-            params: list[Any] = []
-            for idx, (field_name, field_value) in enumerate(updates.items(), start=1):
-                set_clauses.append(f"{field_name} = ${idx}")
-                params.append(field_value)
-
-            params.append(issue_id)
-            updated = await conn.fetchrow(
-                f"""
-                UPDATE issues
-                SET {', '.join(set_clauses)}
-                WHERE id = ${len(params)}
-                RETURNING *
-                """,
-                *params,
-            )
-
-            await conn.execute(
-                """
-                INSERT INTO issue_updates (issue_id, principal, content, status_from, status_to, changes)
-                VALUES ($1, $2, $3, $4, $5, $6)
-                """,
-                issue_id,
-                principal,
-                _format_change_content(changes),
-                changes.get("status", {}).get("from"),
-                changes.get("status", {}).get("to"),
-                json.dumps(jsonable_encoder(changes)),
-            )
+                await conn.execute(
+                    """
+                    INSERT INTO issue_updates (issue_id, principal, content, status_from, status_to, changes)
+                    VALUES ($1, $2, $3, $4, $5, $6)
+                    """,
+                    issue_id,
+                    principal,
+                    _format_change_content(changes),
+                    changes.get("status", {}).get("from"),
+                    changes.get("status", {}).get("to"),
+                    json.dumps(jsonable_encoder(changes)),
+                )
+    except CheckViolationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     return {"data": _row_to_issue(updated), "warnings": warnings}
 

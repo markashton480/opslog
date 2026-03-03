@@ -64,6 +64,34 @@ async def test_issue_lifecycle_sets_and_clears_resolved_at(client, writer_header
 
 
 @pytest.mark.asyncio
+async def test_open_to_resolved_direct_transition_rejected(client, writer_headers):
+    issue = await _create_issue(client, writer_headers, "Invalid direct resolve")
+
+    response = await client.patch(
+        f"/api/v1/issues/{issue['id']}",
+        headers=writer_headers,
+        json={"version": issue["version"], "status": "resolved"},
+    )
+    assert response.status_code == 422
+    assert "invalid status transition" in response.json()["data"]["error"]
+
+
+@pytest.mark.asyncio
+async def test_invalid_last_occurrence_patch_returns_422(client, writer_headers):
+    issue = await _create_issue(client, writer_headers, "Invalid occurrence")
+
+    first_seen = datetime.fromisoformat(issue["first_seen"].replace("Z", "+00:00"))
+    invalid_occurrence = first_seen - timedelta(hours=1)
+
+    response = await client.patch(
+        f"/api/v1/issues/{issue['id']}",
+        headers=writer_headers,
+        json={"version": issue["version"], "last_occurrence": invalid_occurrence.isoformat()},
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
 async def test_issue_patch_optimistic_concurrency(client, writer_headers):
     issue = await _create_issue(client, writer_headers, "Concurrency")
 
