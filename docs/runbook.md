@@ -21,10 +21,13 @@ make up
 # 4. Generate auth tokens for principals
 make tokens
 
-# 5. Install systemd service
+# 5. Install systemd services
 sudo cp deploy/opslog.service /etc/systemd/system/
+sudo cp deploy/opslog-deploy.service /etc/systemd/system/
+sudo cp deploy/opslog-deploy.timer /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now opslog
+sudo systemctl enable --now opslog-deploy.timer
 
 # 6. Configure host Caddy (TLS termination)
 # Merge deploy/Caddyfile into the host's main Caddy config:
@@ -154,13 +157,61 @@ docker compose restart
 
 ### Update deployment
 
+Automatic deployment runs via a systemd timer that polls `origin/main` every 2 minutes.
+
 ```bash
+# Check timer status
+systemctl status opslog-deploy.timer
+
+# View deploy logs
+journalctl -u opslog-deploy -f
+
+# Manual deploy (immediate)
 cd /opt/opslog
 git pull origin main
 make build
 make up
 # Or via systemd:
 sudo systemctl reload opslog
+
+# Force auto-deploy run now
+sudo systemctl start opslog-deploy.service
+```
+
+---
+
+## CI/CD Pipeline
+
+### CI (GitHub Actions)
+
+Runs automatically on every PR and push to `main`:
+- **Dashboard**: TypeScript check → Vitest → Vite build
+- **API**: Ruff lint → Pytest (with PostgreSQL service container)
+- **Docker**: Build both images to verify Dockerfiles
+
+Workflow: `.github/workflows/ci.yml`
+
+### CD (Auto-deploy timer)
+
+A systemd timer on `lintel-tools-02` polls `origin/main` every 2 minutes:
+
+```
+opslog-deploy.timer → opslog-deploy.service → deploy/auto-deploy.sh
+```
+
+The script:
+1. `git fetch origin main`
+2. Compares local HEAD with `origin/main`
+3. If new commits: pull → `docker compose build` → `docker compose up -d`
+4. Health check verifies success
+5. Logs via `journalctl -u opslog-deploy`
+
+Install/reinstall:
+```bash
+sudo cp deploy/opslog-deploy.service /etc/systemd/system/
+sudo cp deploy/opslog-deploy.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now opslog-deploy.timer
 ```
 
 ---

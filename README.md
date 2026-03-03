@@ -45,7 +45,13 @@ opslog/
 ├── deploy/                 # Deployment configuration
 │   ├── Caddyfile           # Host-level reverse proxy (TLS)
 │   ├── opslog.service      # systemd unit file
+│   ├── opslog-deploy.service  # Auto-deploy systemd service
+│   ├── opslog-deploy.timer    # 2-minute poll timer
+│   ├── auto-deploy.sh      # Pull-and-redeploy script
 │   └── postgres/           # DB tuning + init script
+├── .github/
+│   └── workflows/
+│       └── ci.yml          # PR/push CI pipeline
 ├── docs/
 │   ├── spec.md             # Design specification
 │   ├── implementation.md   # Implementation plan
@@ -101,12 +107,26 @@ API: `https://opslog.lintel.digital/api/v1`
 
 See [docs/runbook.md](./docs/runbook.md) for the full operations runbook including first-time setup, principal management, and troubleshooting.
 
+## CI/CD
+
+**CI** — GitHub Actions runs on every PR and push to `main`:
+- Dashboard: typecheck → test → build
+- API: lint → test (with PostgreSQL service)
+- Docker: build both images
+
+**CD** — Automatic deployment via systemd timer on `lintel-tools-02`:
+- `opslog-deploy.timer` polls `origin/main` every 2 minutes
+- If new commits are detected, pulls, rebuilds images, and restarts containers
+- Health check verifies the deploy succeeded
+- Logs to journald: `journalctl -u opslog-deploy -f`
+
 ## Tech Stack
 
 - **API**: Python 3.12 + FastAPI + asyncpg + PostgreSQL 16
 - **Dashboard**: React 19 + Vite + TypeScript + Tailwind CSS 4
 - **Serving**: Caddy (static files + reverse proxy + TLS)
 - **Infrastructure**: Docker Compose + systemd
+- **CI/CD**: GitHub Actions (CI) + systemd timer auto-deploy (CD)
 
 ## Design Docs
 

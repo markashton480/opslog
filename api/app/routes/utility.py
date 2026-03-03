@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter
 
@@ -7,7 +7,7 @@ from app.db import connection
 from app.models import categories_payload
 
 router = APIRouter(prefix="/api/v1", tags=["utility"])
-STARTED_AT = datetime.now(timezone.utc)
+STARTED_AT = datetime.now(UTC)
 
 
 @router.get("/health")
@@ -17,7 +17,7 @@ async def health() -> dict:
         await conn.fetchval("SELECT 1")
         db_state = "connected"
 
-    uptime = int((datetime.now(timezone.utc) - STARTED_AT).total_seconds())
+    uptime = int((datetime.now(UTC) - STARTED_AT).total_seconds())
     return {
         "data": {
             "status": "ok",
