@@ -1,5 +1,6 @@
 [Unit]
 Description=OpsLog auto-deploy (poll main branch)
+Requires=docker.service
 After=network-online.target docker.service
 Wants=network-online.target
 

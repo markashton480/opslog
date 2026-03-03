@@ -4,24 +4,30 @@
 set -euo pipefail
 
 REPO_DIR="/opt/opslog"
-LOCK_FILE="/tmp/opslog-deploy.lock"
+LOCK_FILE="/run/opslog/deploy.lock"
 LOG_TAG="opslog-deploy"
 
 log() { logger -t "$LOG_TAG" "$@"; echo "[$(date -Iseconds)] $*"; }
 
-# Prevent concurrent runs
-if [ -f "$LOCK_FILE" ]; then
-    pid=$(cat "$LOCK_FILE" 2>/dev/null || true)
-    if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
-        log "Another deploy is running (PID $pid), skipping"
-        exit 0
-    fi
-    rm -f "$LOCK_FILE"
+# Prevent concurrent runs using flock
+mkdir -p "$(dirname "$LOCK_FILE")"
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+    log "Another deploy is running, skipping"
+    exit 0
 fi
-echo $$ > "$LOCK_FILE"
-trap 'rm -f "$LOCK_FILE"' EXIT
+echo $$ >&9
 
 cd "$REPO_DIR"
+
+# Source .env for port configuration
+LISTEN_ADDR="${LISTEN_ADDR:-127.0.0.1}"
+DASHBOARD_PORT="${DASHBOARD_PORT:-8601}"
+if [ -f .env ]; then
+    # shellcheck source=/dev/null
+    set -a; source .env; set +a
+fi
+HEALTH_URL="http://${LISTEN_ADDR:-127.0.0.1}:${DASHBOARD_PORT:-8601}/api/v1/health"
 
 # Fetch latest from origin
 git fetch origin main --quiet
@@ -38,12 +44,12 @@ log "Pulling latest..."
 git pull origin main --ff-only --quiet
 
 log "Building and deploying..."
-docker compose build --quiet 2>&1 | tail -5
-docker compose up -d --remove-orphans 2>&1
+/usr/bin/docker compose build --quiet 2>&1 | tail -5
+/usr/bin/docker compose up -d --remove-orphans 2>&1
 
 log "Waiting for health check..."
 sleep 10
-if curl -sf http://localhost:8601/api/v1/health > /dev/null 2>&1; then
+if curl -sf "$HEALTH_URL" > /dev/null 2>&1; then
     log "Deploy successful — now at $(git rev-parse --short HEAD)"
 else
     log "WARNING: Health check failed after deploy"
