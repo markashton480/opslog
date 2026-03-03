@@ -3,6 +3,10 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { api, type QueryParams } from "@/api/client";
 import type { Event } from "@/api/types";
 
+interface UseEventsOptions {
+  refetchInterval?: number;
+}
+
 interface UseEventsResult {
   events: Event[];
   warnings: string[];
@@ -12,9 +16,10 @@ interface UseEventsResult {
   isFetching: boolean;
   isFetchingNextPage: boolean;
   loadMore: () => Promise<unknown>;
+  dataUpdatedAt: number;
 }
 
-export function useEvents(params?: QueryParams): UseEventsResult {
+export function useEvents(params?: QueryParams, options?: UseEventsOptions): UseEventsResult {
   const query = useInfiniteQuery({
     queryKey: ["events", params],
     initialPageParam: null as string | null,
@@ -24,6 +29,8 @@ export function useEvents(params?: QueryParams): UseEventsResult {
         cursor: pageParam ?? undefined,
       }),
     getNextPageParam: (lastPage) => (lastPage.has_more ? lastPage.next_cursor : undefined),
+    refetchInterval: options?.refetchInterval,
+    refetchOnWindowFocus: true,
   });
 
   const pages = query.data?.pages ?? [];
@@ -37,6 +44,7 @@ export function useEvents(params?: QueryParams): UseEventsResult {
     isFetching: query.isFetching,
     isFetchingNextPage: query.isFetchingNextPage,
     loadMore: () => query.fetchNextPage(),
+    dataUpdatedAt: query.dataUpdatedAt,
   };
 }
 
