@@ -1,23 +1,39 @@
 #!/usr/bin/env python3
 """Generate bearer tokens for principals."""
 
-import secrets
-import hashlib
+from __future__ import annotations
 
-def main():
-    principals = ["mark", "claude", "codex_a", "codex_b", "codex_c", "sum-cli", "ci_runner", "readonly"]
-    
+import hashlib
+import secrets
+
+PRINCIPALS = [
+    "mark",
+    "claude",
+    "codex_a",
+    "codex_b",
+    "codex_c",
+    "sum-cli",
+    "ci_runner",
+    "readonly",
+]
+
+
+def hash_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def main() -> None:
     print("# Bearer tokens for principals")
-    print("# Store these securely - they cannot be recovered!")
+    print("# Store securely. Hashes are for DB insertion.")
     print()
-    
-    for principal in principals:
-        token = f"opslog_{principal}_{secrets.token_hex(16)}"
-        token_hash = hashlib.sha256(token.encode()).hexdigest()
-        print(f"# {principal}")
-        print(f"# Token: {token}")
-        print(f"# Hash:  {token_hash}")
+
+    for principal in PRINCIPALS:
+        token = f"opslog_{principal}_{secrets.token_hex(24)}"
+        print(f"[{principal}]")
+        print(f"token={token}")
+        print(f"token_hash={hash_token(token)}")
         print()
+
 
 if __name__ == "__main__":
     main()
