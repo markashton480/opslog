@@ -75,6 +75,16 @@ On mobile, the sidebar is hidden behind a "Menu" button in the header.
 
 ## Authentication
 
-The dashboard uses a pre-configured API token. If you see
-"missing_authorization" errors, the `VITE_OPSLOG_TOKEN` environment variable
-needs to be set during build/dev.
+The dashboard is authenticated by default.
+
+- **Production mode (`VITE_AUTH_MODE=oidc`)**: users sign in with Keycloak (`lintel` realm).
+- **Development fallback (`VITE_AUTH_MODE=token`)**: dashboard uses `VITE_OPSLOG_TOKEN`.
+
+Role-based behavior:
+- `admin` / `writer`: can edit issues and add observations.
+- `reader`: read-only UI (write controls are hidden).
+
+If you see auth errors:
+1. Verify OIDC config (`VITE_OIDC_*` vars) and API OIDC settings (`OIDC_*` vars).
+2. Confirm the principal exists and is `active` in `principals`.
+3. For token mode, verify `VITE_OPSLOG_TOKEN` is set and valid.

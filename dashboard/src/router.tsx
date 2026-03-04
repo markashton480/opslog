@@ -6,16 +6,18 @@ import {
   createBrowserRouter,
   type RouteObject,
   useLocation,
+  useNavigate,
 } from "react-router-dom";
-import { 
-  LayoutGrid, 
-  ListRestart, 
-  AlertCircle, 
+import {
+  AlertCircle,
+  LayoutGrid,
+  ListRestart,
   Menu,
+  ChevronRight,
   X,
-  ChevronRight
 } from "lucide-react";
 
+import { useAuth } from "@/auth/context";
 import { useServers } from "@/hooks/useServers";
 import { EventStream } from "@/pages/EventStream";
 import { FleetOverview } from "@/pages/FleetOverview";
@@ -23,9 +25,19 @@ import { IssueDetail } from "@/pages/IssueDetail";
 import { IssuesBoard } from "@/pages/IssuesBoard";
 import { ServerDetail } from "@/pages/ServerDetail";
 
-function SidebarLink({ to, icon, label, end = false }: { to: string, icon: ReactNode, label: string, end?: boolean }) {
+function SidebarLink({
+  to,
+  icon,
+  label,
+  end = false,
+}: {
+  to: string;
+  icon: ReactNode;
+  label: string;
+  end?: boolean;
+}) {
   return (
-    <NavLink 
+    <NavLink
       to={to}
       end={end}
       className={({ isActive }) => `
@@ -50,6 +62,7 @@ function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const serversQuery = useServers();
+  const auth = useAuth();
 
   useEffect(() => {
     setSidebarOpen(false);
@@ -60,7 +73,7 @@ function AppLayout() {
       {/* Header */}
       <header className="bg-brand border-2 border-neo-gray-950 shadow-neo-sm sticky top-0 z-50 px-6 py-4 flex justify-between items-center">
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             aria-label={sidebarOpen ? "Close menu" : "Open menu"}
             aria-expanded={sidebarOpen}
@@ -73,7 +86,24 @@ function AppLayout() {
             OpsLog <span className="text-neo-gray-950 bg-white px-2 border-2 border-neo-gray-950">Fleet</span>
           </h1>
         </div>
-        <div className="flex gap-4">
+        <div className="flex items-center gap-4">
+          {auth.status === "authenticated" && auth.principal && auth.role ? (
+            <div className="hidden sm:flex items-center gap-3 px-3 py-2 bg-white border-2 border-neo-gray-950 font-bold text-xs shadow-neo-sm uppercase">
+              <span>{auth.principal}</span>
+              <span className="text-neo-gray-500">({auth.role})</span>
+              {auth.mode === "oidc" ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    void auth.logout();
+                  }}
+                  className="ml-2 border-2 border-neo-gray-950 px-2 py-1 bg-neo-gray-100 hover:bg-neo-gray-200"
+                >
+                  Logout
+                </button>
+              ) : null}
+            </div>
+          ) : null}
           <div className="hidden sm:block px-4 py-2 bg-white border-2 border-neo-gray-950 font-bold text-xs shadow-neo-sm">
             STATUS: <span className="text-green-600 animate-pulse">LIVE</span>
           </div>
@@ -107,7 +137,7 @@ function AppLayout() {
             <ul className="space-y-2">
               {(serversQuery.data ?? []).map((server) => (
                 <li key={server.id}>
-                  <NavLink 
+                  <NavLink
                     to={`/servers/${server.name}`}
                     className={({ isActive }) => `
                       flex items-center gap-2 px-3 py-2 font-bold border-2 border-neo-gray-950 text-sm transition-all
@@ -142,17 +172,119 @@ function AppLayout() {
   );
 }
 
+function AuthLoadingScreen() {
+  return (
+    <section className="rounded-xl border-2 border-neo-gray-950 bg-white p-8 text-center shadow-neo">
+      <h2 className="text-2xl font-black uppercase text-neo-gray-900">Authenticating...</h2>
+      <p className="mt-2 text-sm font-bold text-neo-gray-500">
+        Verifying your session with OpsLog.
+      </p>
+    </section>
+  );
+}
+
+function AuthUnavailableScreen({ message }: { message: string }) {
+  return (
+    <section className="rounded-xl border-2 border-red-600 bg-white p-8 text-center shadow-neo">
+      <h2 className="text-2xl font-black uppercase text-red-700">Authentication Unavailable</h2>
+      <p className="mt-2 text-sm font-bold text-neo-gray-700">{message}</p>
+    </section>
+  );
+}
+
+function AuthScreenFrame({ children }: { children: ReactNode }) {
+  return (
+    <div className="min-h-screen bg-neo-gray-200 p-8">
+      <div className="mx-auto max-w-xl">{children}</div>
+    </div>
+  );
+}
+
+function AuthCallbackPage() {
+  const auth = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (auth.status === "authenticated") {
+      navigate("/", { replace: true });
+    }
+  }, [auth.status, navigate]);
+
+  return (
+    <AuthScreenFrame>
+      {auth.status === "error" ? (
+        <AuthUnavailableScreen message={auth.error || "OIDC callback failed."} />
+      ) : (
+        <AuthLoadingScreen />
+      )}
+    </AuthScreenFrame>
+  );
+}
+
+function RequireAuth() {
+  const auth = useAuth();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (auth.mode === "oidc" && auth.status === "unauthenticated" && location.pathname !== "/auth/callback") {
+      void auth.login();
+    }
+  }, [auth.login, auth.mode, auth.status, location.pathname]);
+
+  if (auth.status === "loading" || auth.status === "logging_out") {
+    return (
+      <AuthScreenFrame>
+        <AuthLoadingScreen />
+      </AuthScreenFrame>
+    );
+  }
+
+  if (auth.status === "error") {
+    return (
+      <AuthScreenFrame>
+        <AuthUnavailableScreen message={auth.error || "OIDC configuration or startup failed."} />
+      </AuthScreenFrame>
+    );
+  }
+
+  if (auth.status === "unauthenticated") {
+    if (auth.mode === "oidc") {
+      return (
+        <AuthScreenFrame>
+          <AuthLoadingScreen />
+        </AuthScreenFrame>
+      );
+    }
+    return (
+      <AuthScreenFrame>
+        <AuthUnavailableScreen message={auth.error || "Dashboard token mode is not configured."} />
+      </AuthScreenFrame>
+    );
+  }
+
+  return <Outlet />;
+}
+
 export const appRoutes: RouteObject[] = [
   {
+    path: "/auth/callback",
+    element: <AuthCallbackPage />,
+  },
+  {
     path: "/",
-    element: <AppLayout />,
+    element: <RequireAuth />,
     children: [
-      { index: true, element: <FleetOverview /> },
-      { path: "events", element: <EventStream /> },
-      { path: "issues", element: <IssuesBoard /> },
-      { path: "issues/:id", element: <IssueDetail /> },
-      { path: "servers/:name", element: <ServerDetail /> },
-      { path: "*", element: <Navigate to="/" replace /> },
+      {
+        element: <AppLayout />,
+        children: [
+          { index: true, element: <FleetOverview /> },
+          { path: "events", element: <EventStream /> },
+          { path: "issues", element: <IssuesBoard /> },
+          { path: "issues/:id", element: <IssueDetail /> },
+          { path: "servers/:name", element: <ServerDetail /> },
+          { path: "*", element: <Navigate to="/" replace /> },
+        ],
+      },
     ],
   },
 ];

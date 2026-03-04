@@ -9,6 +9,7 @@ import { SeverityBadge } from "@/components/SeverityBadge";
 import { StatusPill } from "@/components/StatusPill";
 import { TimelineEntry, type TimelineItem } from "@/components/TimelineEntry";
 import { formatRelativeTime } from "@/utils/format";
+import { useAuth } from "@/auth/context";
 import { useIssue } from "@/hooks/useIssues";
 import { useEvents } from "@/hooks/useEvents";
 import { api, ApiError } from "@/api/client";
@@ -18,6 +19,7 @@ const statusOptions: IssueStatus[] = ["open", "investigating", "watching", "reso
 const severityOptions: Severity[] = ["critical", "high", "medium", "low"];
 
 export function IssueDetail() {
+  const auth = useAuth();
   const params = useParams<{ id: string }>();
   const issueId = params.id ?? "";
   const queryClient = useQueryClient();
@@ -178,7 +180,7 @@ export function IssueDetail() {
               )}
             </div>
           </div>
-          {!editing && (
+          {!editing && auth.canWrite && (
             <button
               type="button"
               onClick={startEditing}
@@ -319,27 +321,36 @@ export function IssueDetail() {
           )}
 
           {/* Add observation */}
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm" data-testid="add-observation">
-            <h4 className="text-sm font-semibold text-slate-700">Add Observation</h4>
-            {obsError && <p className="mt-1 text-xs text-red-600">{obsError}</p>}
-            <textarea
-              value={observation}
-              onChange={(e) => setObservation(e.target.value)}
-              placeholder="Describe what you observed…"
-              rows={3}
-              className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              data-testid="observation-input"
-            />
-            <button
-              type="button"
-              onClick={submitObservation}
-              disabled={addingObs || !observation.trim()}
-              className="mt-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-              data-testid="observation-submit"
-            >
-              {addingObs ? "Submitting…" : "Submit"}
-            </button>
-          </div>
+          {auth.canWrite ? (
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm" data-testid="add-observation">
+              <h4 className="text-sm font-semibold text-slate-700">Add Observation</h4>
+              {obsError && <p className="mt-1 text-xs text-red-600">{obsError}</p>}
+              <textarea
+                value={observation}
+                onChange={(e) => setObservation(e.target.value)}
+                placeholder="Describe what you observed…"
+                rows={3}
+                className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                data-testid="observation-input"
+              />
+              <button
+                type="button"
+                onClick={submitObservation}
+                disabled={addingObs || !observation.trim()}
+                className="mt-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+                data-testid="observation-submit"
+              >
+                {addingObs ? "Submitting…" : "Submit"}
+              </button>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm" data-testid="read-only-note">
+              <h4 className="text-sm font-semibold text-slate-700">Read-only Access</h4>
+              <p className="mt-1 text-sm text-slate-500">
+                Your account can view this issue but cannot add updates or edit fields.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Right: Metadata panel */}

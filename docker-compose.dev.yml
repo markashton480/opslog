@@ -31,6 +31,7 @@ services:
       - ./dashboard/index.html:/app/index.html
     environment:
       VITE_API_PROXY_TARGET: http://api:8600
+      VITE_AUTH_MODE: token
       VITE_OPSLOG_TOKEN: opslog_readonly_test
     deploy:
       resources:

@@ -1,12 +1,18 @@
 import asyncio
 import hashlib
+import logging
+from typing import Any
 
 from fastapi import HTTPException, Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
+from app.config import settings
 from app.db import get_pool
 from app.enums import Role
+from app.oidc import OIDCVerificationError, verify_oidc_token
+
+logger = logging.getLogger(__name__)
 
 EXEMPT_PATHS = {
     "/api/v1/health",
@@ -34,6 +40,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         request.state.warnings = []
         request.state.principal = None
         request.state.role = None
+        request.state.auth_source = None
 
         if request.url.path in EXEMPT_PATHS:
             return await call_next(request)
@@ -52,17 +59,8 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 content={"data": {"error": "invalid_authorization_scheme"}, "warnings": []},
             )
 
-        token_hash = hash_token(parts[1])
-        pool = get_pool()
-        principal_row = await pool.fetchrow(
-            """
-            SELECT name, role
-            FROM principals
-            WHERE token_hash = $1
-              AND status = 'active'
-            """,
-            token_hash,
-        )
+        token = parts[1].strip()
+        principal_row = await _resolve_principal(token, request)
 
         if principal_row is None:
             return JSONResponse(
@@ -87,3 +85,65 @@ def require_roles(*roles: Role):
             raise HTTPException(status_code=403, detail="insufficient_role")
 
     return dependency
+
+
+async def _resolve_principal(token: str, request: Request) -> Any | None:
+    if _looks_like_jwt(token):
+        logger.debug("Routing bearer token to OIDC verification path based on JWT shape")
+        if not settings.oidc_enabled:
+            return None
+        return await _resolve_oidc_principal(token, request)
+    logger.debug("Routing bearer token to legacy hash verification path based on token shape")
+    return await _resolve_legacy_principal(token, request)
+
+
+def _looks_like_jwt(token: str) -> bool:
+    # Legacy API tokens are generated as `opslog_<name>_<hex>` and must remain dot-free.
+    # Principal tooling and docs should continue to enforce that invariant.
+    # JWTs always have three segments separated by dots.
+    return token.count(".") == 2
+
+
+async def _resolve_legacy_principal(token: str, request: Request) -> Any | None:
+    token_hash = hash_token(token)
+    pool = get_pool()
+    principal_row = await pool.fetchrow(
+        """
+        SELECT name, role
+        FROM principals
+        WHERE token_hash = $1
+          AND status = 'active'
+        """,
+        token_hash,
+    )
+    if principal_row is not None:
+        request.state.auth_source = "token"
+    return principal_row
+
+
+async def _resolve_oidc_principal(token: str, request: Request) -> Any | None:
+    try:
+        verification = await verify_oidc_token(token)
+    except OIDCVerificationError as exc:
+        logger.warning("OIDC token verification failed: %s", exc.code)
+        return None
+
+    username_claim = settings.oidc_username_claim
+    principal_name = verification.claims.get(username_claim)
+    if not isinstance(principal_name, str) or not principal_name:
+        return None
+
+    pool = get_pool()
+    principal_row = await pool.fetchrow(
+        """
+        SELECT name, role
+        FROM principals
+        WHERE name = $1
+          AND status = 'active'
+        """,
+        principal_name,
+    )
+    if principal_row is not None:
+        request.state.auth_source = "oidc"
+        request.state.warnings.extend(verification.warnings)
+    return principal_row

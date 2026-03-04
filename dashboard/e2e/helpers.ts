@@ -6,6 +6,20 @@
 const API_URL = process.env.PLAYWRIGHT_API_URL || "http://localhost:8601";
 const TOKEN = process.env.PLAYWRIGHT_API_TOKEN || "opslog_codex_b_test";
 const ADMIN_TOKEN = process.env.PLAYWRIGHT_ADMIN_TOKEN || "opslog_mark_test";
+const USE_OIDC_DIRECT_GRANT = process.env.PLAYWRIGHT_USE_OIDC_DIRECT_GRANT === "1";
+const OIDC_TOKEN_URL = process.env.PLAYWRIGHT_OIDC_TOKEN_URL || "";
+const OIDC_CLIENT_ID = process.env.PLAYWRIGHT_OIDC_CLIENT_ID || "";
+const OIDC_WRITER_USERNAME = process.env.PLAYWRIGHT_OIDC_WRITER_USERNAME || "";
+const OIDC_WRITER_PASSWORD = process.env.PLAYWRIGHT_OIDC_WRITER_PASSWORD || "";
+const OIDC_ADMIN_USERNAME = process.env.PLAYWRIGHT_OIDC_ADMIN_USERNAME || "";
+const OIDC_ADMIN_PASSWORD = process.env.PLAYWRIGHT_OIDC_ADMIN_PASSWORD || "";
+
+let cachedWriterToken: string | null = null;
+let cachedAdminToken: string | null = null;
+let cachedWriterTokenExp: number | null = null;
+let cachedAdminTokenExp: number | null = null;
+
+const TOKEN_REFRESH_SKEW_SECONDS = 60;
 
 interface SeedResult {
   servers: string[];
@@ -13,12 +27,88 @@ interface SeedResult {
   issueIds: string[];
 }
 
+async function fetchOidcDirectGrantToken(username: string, password: string): Promise<string> {
+  if (!OIDC_TOKEN_URL || !OIDC_CLIENT_ID || !username || !password) {
+    throw new Error("Missing OIDC direct-grant env vars for Playwright");
+  }
+
+  const body = new URLSearchParams({
+    grant_type: "password",
+    client_id: OIDC_CLIENT_ID,
+    username,
+    password,
+  });
+
+  const response = await fetch(OIDC_TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+  });
+  if (!response.ok) {
+    throw new Error(`OIDC token fetch failed: ${response.status} ${await response.text()}`);
+  }
+  const payload = await response.json() as { access_token?: string };
+  if (!payload.access_token) {
+    throw new Error("OIDC token response missing access_token");
+  }
+  return payload.access_token;
+}
+
+function decodeJwtExpSeconds(token: string): number | null {
+  const parts = token.split(".");
+  if (parts.length !== 3) {
+    return null;
+  }
+  try {
+    const payloadPart = parts[1];
+    const normalized = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8")) as { exp?: unknown };
+    return typeof payload.exp === "number" && Number.isFinite(payload.exp) ? payload.exp : null;
+  } catch {
+    return null;
+  }
+}
+
+function isCachedTokenUsable(token: string | null, exp: number | null): token is string {
+  if (!token || exp === null) {
+    return false;
+  }
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  return nowSeconds < exp - TOKEN_REFRESH_SKEW_SECONDS;
+}
+
+async function getWriterToken(): Promise<string> {
+  if (!USE_OIDC_DIRECT_GRANT) {
+    return TOKEN;
+  }
+  if (isCachedTokenUsable(cachedWriterToken, cachedWriterTokenExp)) {
+    return cachedWriterToken;
+  }
+  cachedWriterToken = await fetchOidcDirectGrantToken(OIDC_WRITER_USERNAME, OIDC_WRITER_PASSWORD);
+  cachedWriterTokenExp = decodeJwtExpSeconds(cachedWriterToken);
+  return cachedWriterToken;
+}
+
+async function getAdminToken(): Promise<string> {
+  if (!USE_OIDC_DIRECT_GRANT) {
+    return ADMIN_TOKEN;
+  }
+  if (isCachedTokenUsable(cachedAdminToken, cachedAdminTokenExp)) {
+    return cachedAdminToken;
+  }
+  cachedAdminToken = await fetchOidcDirectGrantToken(OIDC_ADMIN_USERNAME, OIDC_ADMIN_PASSWORD);
+  cachedAdminTokenExp = decodeJwtExpSeconds(cachedAdminToken);
+  return cachedAdminToken;
+}
+
 async function apiPost(path: string, body: Record<string, unknown>): Promise<{ data: Record<string, unknown>; created: boolean }> {
+  const token = await getWriterToken();
   const res = await fetch(`${API_URL}/api/v1${path}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${TOKEN}`,
+      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(body),
   });
@@ -30,11 +120,12 @@ async function apiPost(path: string, body: Record<string, unknown>): Promise<{ d
 }
 
 async function apiPut(path: string, body: Record<string, unknown>, token?: string) {
+  const authToken = token || await getAdminToken();
   const res = await fetch(`${API_URL}/api/v1${path}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token || TOKEN}`,
+      Authorization: `Bearer ${authToken}`,
     },
     body: JSON.stringify(body),
   });
@@ -45,11 +136,12 @@ async function apiPut(path: string, body: Record<string, unknown>, token?: strin
 }
 
 async function apiPatch(path: string, body: Record<string, unknown>) {
+  const token = await getWriterToken();
   const res = await fetch(`${API_URL}/api/v1${path}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${TOKEN}`,
+      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(body),
   });
@@ -73,7 +165,7 @@ export async function seedTestData(): Promise<SeedResult> {
   await apiPut("/servers/e2e-test-server", {
     display_name: "E2E Test Server",
     environment: "test",
-  }, ADMIN_TOKEN);
+  });
 
   // Create events across servers and categories (dedupe_key for idempotent re-runs)
   const events = [

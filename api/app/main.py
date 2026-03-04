@@ -10,13 +10,31 @@ from app.auth import AuthMiddleware
 from app.config import settings
 from app.db import close_pool, init_pool
 from app.middleware import RequestSizeLimitMiddleware
+from app.oidc import close_oidc_verifier
 from app.routes import events_router, issues_router, servers_router, utility_router
+
+
+def validate_startup_config() -> None:
+    if not settings.oidc_enabled:
+        return
+
+    missing: list[str] = []
+    if not settings.oidc_issuer:
+        missing.append("OIDC_ISSUER")
+    if not settings.oidc_audience:
+        missing.append("OIDC_AUDIENCE")
+    if missing:
+        raise RuntimeError(f"OIDC_ENABLED=true requires {', '.join(missing)}")
+    if not settings.oidc_algorithms:
+        raise RuntimeError("OIDC_ENABLED=true requires at least one OIDC algorithm")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    validate_startup_config()
     await init_pool()
     yield
+    await close_oidc_verifier()
     await close_pool()
 
 

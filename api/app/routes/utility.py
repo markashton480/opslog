@@ -1,9 +1,11 @@
 from datetime import UTC, datetime
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Request
 
+from app.auth import require_roles
 from app.config import settings
 from app.db import connection
+from app.enums import Role
 from app.models import categories_payload
 
 router = APIRouter(prefix="/api/v1", tags=["utility"])
@@ -32,3 +34,15 @@ async def health() -> dict:
 @router.get("/categories")
 async def categories() -> dict:
     return {"data": categories_payload().model_dump(mode="json"), "warnings": []}
+
+
+@router.get("/me", dependencies=[Depends(require_roles(Role.admin, Role.writer, Role.reader))])
+async def me(request: Request) -> dict:
+    return {
+        "data": {
+            "principal": request.state.principal,
+            "role": request.state.role,
+            "auth_source": request.state.auth_source,
+        },
+        "warnings": list(request.state.warnings),
+    }

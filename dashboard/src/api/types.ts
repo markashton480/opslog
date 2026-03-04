@@ -41,6 +41,12 @@ export interface Health {
   uptime_seconds: number;
 }
 
+export interface MeResponse {
+  principal: string;
+  role: "admin" | "writer" | "reader";
+  auth_source: "token" | "oidc";
+}
+
 export interface Event {
   id: string;
   occurred_at: string;

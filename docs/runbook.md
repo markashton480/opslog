@@ -50,6 +50,35 @@ curl -s -o /dev/null -w "%{http_code}" http://localhost:8601/
 curl -s https://opslog.lintel.digital/api/v1/health | jq .
 ```
 
+### Dashboard auth configuration (OIDC)
+
+Set these in `.env` for production dashboard login:
+
+```bash
+VITE_AUTH_MODE=oidc
+VITE_OIDC_AUTHORITY=https://auth.lintel.digital/realms/lintel
+VITE_OIDC_CLIENT_ID=opslog
+VITE_OIDC_REDIRECT_URI=https://opslog.lintel.digital/auth/callback
+VITE_OIDC_POST_LOGOUT_REDIRECT_URI=https://opslog.lintel.digital/
+VITE_OIDC_SCOPE=openid profile email
+OPSLOG_CSP_CONNECT_EXTRA=https://auth.lintel.digital
+OPSLOG_CSP_FRAME_EXTRA=https://auth.lintel.digital
+```
+
+API OIDC settings:
+
+```bash
+OIDC_ENABLED=true
+OIDC_ISSUER=https://auth.lintel.digital/realms/lintel
+OIDC_AUDIENCE=opslog
+OIDC_USERNAME_CLAIM=preferred_username
+OIDC_ALGORITHMS=RS256
+```
+
+Notes:
+- Agent bearer tokens continue to work even when OIDC is enabled.
+- Authorization still comes from the `principals` table (`role`, `status`).
+
 ---
 
 ## Principal management

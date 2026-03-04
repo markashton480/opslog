@@ -1,6 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ApiError, api } from "@/api/client";
+import {
+  ApiError,
+  api,
+  setTokenProvider,
+  setUnauthorizedHandler,
+} from "@/api/client";
 
 function mockFetchResponse(payload: unknown, ok = true, status = 200): Response {
   return {
@@ -11,6 +16,16 @@ function mockFetchResponse(payload: unknown, ok = true, status = 200): Response 
 }
 
 describe("API client", () => {
+  beforeEach(() => {
+    setTokenProvider(() => "test-token");
+    setUnauthorizedHandler(null);
+  });
+
+  afterEach(() => {
+    setTokenProvider(() => null);
+    setUnauthorizedHandler(null);
+  });
+
   it("sends auth header and parses envelope", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       mockFetchResponse({ data: { status: "ok", version: "0.3.0", db: "connected", uptime_seconds: 1 }, warnings: [] })
@@ -22,7 +37,7 @@ describe("API client", () => {
     expect(response.data.status).toBe("ok");
     const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
     const headers = new Headers(options.headers);
-    expect(headers.get("Authorization")?.startsWith("Bearer")).toBe(true);
+    expect(headers.get("Authorization")).toBe("Bearer test-token");
   });
 
   it("builds list query parameters", async () => {
@@ -47,5 +62,18 @@ describe("API client", () => {
     await expect(api.servers.list()).rejects.toMatchObject({
       message: expect.stringContaining("403"),
     });
+  });
+
+  it("invokes unauthorized handler for 401 responses", async () => {
+    const onUnauthorized = vi.fn();
+    setUnauthorizedHandler(onUnauthorized);
+
+    const fetchMock = vi.fn().mockResolvedValue(
+      mockFetchResponse({ data: { error: "invalid_token" }, warnings: [] }, false, 401)
+    );
+    vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
+
+    await expect(api.servers.list()).rejects.toBeInstanceOf(ApiError);
+    expect(onUnauthorized).toHaveBeenCalledTimes(1);
   });
 });

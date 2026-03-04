@@ -114,6 +114,7 @@ jobs:
           API_PORT=8600
           LOG_LEVEL=WARNING
           VITE_OPSLOG_API_URL=/api/v1
+          VITE_AUTH_MODE=token
           VITE_OPSLOG_TOKEN=opslog_readonly_test
           LISTEN_ADDR=127.0.0.1
           DASHBOARD_PORT=8601

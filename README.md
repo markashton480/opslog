@@ -19,7 +19,7 @@ A centralised, write-optimised event log and issue tracker for the Lintel infras
                         └────────┼────────────────────────┘
                   ┌──────────────▼──────────────────┐
                   │   API (FastAPI :8600)            │
-                  │   • Bearer token auth            │
+                  │   • Bearer token + OIDC auth     │
                   │   • Auto-migrations on start     │
                   └──────────────┬──────────────────┘
                   ┌──────────────▼──────────────────┐
@@ -107,6 +107,10 @@ make tokens
 Target host: `lintel-tools-02`  
 URL: `https://opslog.lintel.digital`  
 API: `https://opslog.lintel.digital/api/v1`
+
+Dashboard auth:
+- Production: Keycloak OIDC (`VITE_AUTH_MODE=oidc`)
+- Dev fallback: static token mode (`VITE_AUTH_MODE=token`)
 
 See [docs/runbook.md](./docs/runbook.md) for the full operations runbook including first-time setup, principal management, and troubleshooting.
 

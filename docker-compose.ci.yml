@@ -18,7 +18,11 @@ services:
   dashboard:
     build:
       args:
+        VITE_AUTH_MODE: ${VITE_AUTH_MODE:-token}
         VITE_OPSLOG_TOKEN: ${VITE_OPSLOG_TOKEN:-opslog_readonly_test}
+    environment:
+      OPSLOG_CSP_CONNECT_EXTRA: ""
+      OPSLOG_CSP_FRAME_EXTRA: ""
     deploy:
       resources:
         limits:
