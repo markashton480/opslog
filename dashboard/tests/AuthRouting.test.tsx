@@ -134,4 +134,5 @@ describe("Auth routing", () => {
     expect(await screen.findByText("Authentication Unavailable")).toBeInTheDocument();
     expect(screen.getByText("oidc_callback_failed")).toBeInTheDocument();
   });
+
 });

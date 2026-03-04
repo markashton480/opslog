@@ -6,6 +6,7 @@ import {
   createBrowserRouter,
   type RouteObject,
   useLocation,
+  useNavigate,
 } from "react-router-dom";
 import {
   AlertCircle,
@@ -201,6 +202,13 @@ function AuthScreenFrame({ children }: { children: ReactNode }) {
 
 function AuthCallbackPage() {
   const auth = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (auth.status === "authenticated") {
+      navigate("/", { replace: true });
+    }
+  }, [auth.status, navigate]);
 
   return (
     <AuthScreenFrame>

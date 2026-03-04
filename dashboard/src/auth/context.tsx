@@ -271,7 +271,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const callbackPath = new URL(settings.redirect_uri, window.location.origin).pathname;
         if (window.location.pathname === callbackPath && hasAuthorizationParams(window.location.search)) {
           await manager.signinCallback();
-          window.history.replaceState({}, document.title, "/");
         }
 
         let user = await manager.getUser();
