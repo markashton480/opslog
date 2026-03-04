@@ -89,14 +89,17 @@ def require_roles(*roles: Role):
 
 async def _resolve_principal(token: str, request: Request) -> Any | None:
     if _looks_like_jwt(token):
+        logger.debug("Routing bearer token to OIDC verification path based on JWT shape")
         if not settings.oidc_enabled:
             return None
         return await _resolve_oidc_principal(token, request)
+    logger.debug("Routing bearer token to legacy hash verification path based on token shape")
     return await _resolve_legacy_principal(token, request)
 
 
 def _looks_like_jwt(token: str) -> bool:
-    # Legacy API tokens are generated as `opslog_<name>_<hex>` and never contain dots.
+    # Legacy API tokens are generated as `opslog_<name>_<hex>` and must remain dot-free.
+    # Principal tooling and docs should continue to enforce that invariant.
     # JWTs always have three segments separated by dots.
     return token.count(".") == 2
 

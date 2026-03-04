@@ -200,9 +200,15 @@ function AuthScreenFrame({ children }: { children: ReactNode }) {
 }
 
 function AuthCallbackPage() {
+  const auth = useAuth();
+
   return (
     <AuthScreenFrame>
-      <AuthLoadingScreen />
+      {auth.status === "error" ? (
+        <AuthUnavailableScreen message={auth.error || "OIDC callback failed."} />
+      ) : (
+        <AuthLoadingScreen />
+      )}
     </AuthScreenFrame>
   );
 }

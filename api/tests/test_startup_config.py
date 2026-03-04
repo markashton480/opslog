@@ -1,3 +1,4 @@
+import re
 from collections.abc import Iterator
 
 import pytest
@@ -33,7 +34,10 @@ def test_validate_startup_config_requires_issuer_and_audience(startup_settings_o
     settings.oidc_issuer = None
     settings.oidc_audience = None
 
-    with pytest.raises(RuntimeError, match="OIDC_ENABLED=true requires OIDC_ISSUER, OIDC_AUDIENCE"):
+    with pytest.raises(
+        RuntimeError,
+        match=re.escape("OIDC_ENABLED=true requires OIDC_ISSUER, OIDC_AUDIENCE"),
+    ):
         validate_startup_config()
 
 

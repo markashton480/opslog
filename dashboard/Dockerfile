@@ -4,6 +4,8 @@ WORKDIR /app
 
 ARG VITE_OPSLOG_API_URL=/api/v1
 ARG VITE_AUTH_MODE=oidc
+# Security note: this token is baked into static JS assets at build time.
+# It MUST be a read-only (reader role) token - never use a writer/admin token here.
 ARG VITE_OPSLOG_TOKEN=
 ARG VITE_OIDC_AUTHORITY=
 ARG VITE_OIDC_CLIENT_ID=

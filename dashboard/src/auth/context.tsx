@@ -53,7 +53,12 @@ function resolveAuthMode(): AuthMode {
   if (mode === "oidc" || mode === "token") {
     return mode;
   }
-  return import.meta.env.PROD ? "oidc" : "token";
+
+  const fallbackMode = import.meta.env.PROD ? "oidc" : "token";
+  if (mode) {
+    console.warn(`Invalid VITE_AUTH_MODE '${mode}', falling back to '${fallbackMode}'.`);
+  }
+  return fallbackMode;
 }
 
 function buildOidcSettings(): UserManagerSettings | null {

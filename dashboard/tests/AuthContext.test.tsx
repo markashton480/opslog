@@ -121,4 +121,23 @@ describe("Auth context", () => {
       ),
     );
   });
+
+  it("warns and falls back when VITE_AUTH_MODE is invalid", async () => {
+    vi.stubEnv("VITE_AUTH_MODE", "oauth");
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    render(
+      <AuthProvider>
+        <AuthProbe />
+      </AuthProvider>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("auth-state")).toHaveTextContent("unauthenticated|none|none|read"),
+    );
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Invalid VITE_AUTH_MODE 'oauth', falling back to 'token'."),
+    );
+  });
 });

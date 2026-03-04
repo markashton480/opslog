@@ -116,4 +116,22 @@ describe("Auth routing", () => {
     expect(await screen.findByText("Authenticating...")).toBeInTheDocument();
     await waitFor(() => expect(login).not.toHaveBeenCalled());
   });
+
+  it("shows callback error on /auth/callback when oidc callback fails", async () => {
+    mockUseAuth.mockReturnValue({
+      mode: "oidc",
+      status: "error",
+      canWrite: false,
+      principal: null,
+      role: null,
+      error: "oidc_callback_failed",
+      login: vi.fn(),
+      logout: vi.fn(),
+      refreshIdentity: vi.fn(),
+    });
+
+    renderApp("/auth/callback");
+    expect(await screen.findByText("Authentication Unavailable")).toBeInTheDocument();
+    expect(screen.getByText("oidc_callback_failed")).toBeInTheDocument();
+  });
 });

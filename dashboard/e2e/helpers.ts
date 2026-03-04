@@ -16,6 +16,10 @@ const OIDC_ADMIN_PASSWORD = process.env.PLAYWRIGHT_OIDC_ADMIN_PASSWORD || "";
 
 let cachedWriterToken: string | null = null;
 let cachedAdminToken: string | null = null;
+let cachedWriterTokenExp: number | null = null;
+let cachedAdminTokenExp: number | null = null;
+
+const TOKEN_REFRESH_SKEW_SECONDS = 60;
 
 interface SeedResult {
   servers: string[];
@@ -50,14 +54,39 @@ async function fetchOidcDirectGrantToken(username: string, password: string): Pr
   return payload.access_token;
 }
 
+function decodeJwtExpSeconds(token: string): number | null {
+  const parts = token.split(".");
+  if (parts.length !== 3) {
+    return null;
+  }
+  try {
+    const payloadPart = parts[1];
+    const normalized = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8")) as { exp?: unknown };
+    return typeof payload.exp === "number" && Number.isFinite(payload.exp) ? payload.exp : null;
+  } catch {
+    return null;
+  }
+}
+
+function isCachedTokenUsable(token: string | null, exp: number | null): token is string {
+  if (!token || exp === null) {
+    return false;
+  }
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  return nowSeconds < exp - TOKEN_REFRESH_SKEW_SECONDS;
+}
+
 async function getWriterToken(): Promise<string> {
   if (!USE_OIDC_DIRECT_GRANT) {
     return TOKEN;
   }
-  if (cachedWriterToken) {
+  if (isCachedTokenUsable(cachedWriterToken, cachedWriterTokenExp)) {
     return cachedWriterToken;
   }
   cachedWriterToken = await fetchOidcDirectGrantToken(OIDC_WRITER_USERNAME, OIDC_WRITER_PASSWORD);
+  cachedWriterTokenExp = decodeJwtExpSeconds(cachedWriterToken);
   return cachedWriterToken;
 }
 
@@ -65,10 +94,11 @@ async function getAdminToken(): Promise<string> {
   if (!USE_OIDC_DIRECT_GRANT) {
     return ADMIN_TOKEN;
   }
-  if (cachedAdminToken) {
+  if (isCachedTokenUsable(cachedAdminToken, cachedAdminTokenExp)) {
     return cachedAdminToken;
   }
   cachedAdminToken = await fetchOidcDirectGrantToken(OIDC_ADMIN_USERNAME, OIDC_ADMIN_PASSWORD);
+  cachedAdminTokenExp = decodeJwtExpSeconds(cachedAdminToken);
   return cachedAdminToken;
 }
 
