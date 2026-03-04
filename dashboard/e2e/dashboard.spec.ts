@@ -182,15 +182,15 @@ test.describe("Navigation", () => {
     await expect(page.locator("h2, h3").filter({ hasText: /Fleet Overview/i })).toBeVisible({ timeout: 10_000 });
 
     // Navigate to Events
-    await page.locator("nav a").filter({ hasText: /Event Stream/i }).click();
+    await page.locator("aside").getByText(/Event Stream/i).click();
     await expect(page).toHaveURL(/\/events/);
 
     // Navigate to Issues
-    await page.locator("nav a").filter({ hasText: /Issues Board/i }).click();
+    await page.locator("aside").getByText(/Issues Board/i).click();
     await expect(page).toHaveURL(/\/issues/);
 
     // Navigate back to Fleet Overview
-    await page.locator("nav a").filter({ hasText: /Fleet Overview/i }).click();
+    await page.locator("aside").getByText(/Fleet Overview/i).first().click();
     await expect(page).toHaveURL("/");
   });
 

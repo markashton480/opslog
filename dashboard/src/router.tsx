@@ -92,9 +92,9 @@ function AppLayout() {
           `}
         >
           <nav className="flex flex-col gap-3">
-            <SidebarLink to="/" icon={<LayoutGrid size={20} />} label="Overview" end />
-            <SidebarLink to="/events" icon={<ListRestart size={20} />} label="Events" />
-            <SidebarLink to="/issues" icon={<AlertCircle size={20} />} label="Issues" />
+            <SidebarLink to="/" icon={<LayoutGrid size={20} />} label="Fleet Overview" end />
+            <SidebarLink to="/events" icon={<ListRestart size={20} />} label="Event Stream" />
+            <SidebarLink to="/issues" icon={<AlertCircle size={20} />} label="Issues Board" />
           </nav>
 
           <div className="mt-4 pt-4 border-t-2 border-neo-gray-950">

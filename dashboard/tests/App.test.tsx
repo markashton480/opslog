@@ -79,9 +79,9 @@ vi.mock("@/hooks/useCategories", () => ({
 function TestNav() {
   return (
     <nav>
-      <Link to="/">Overview</Link>
-      <Link to="/events">Events</Link>
-      <Link to="/issues">Issues</Link>
+      <Link to="/">Fleet Overview</Link>
+      <Link to="/events">Event Stream</Link>
+      <Link to="/issues">Issues Board</Link>
     </nav>
   );
 }
@@ -107,12 +107,12 @@ describe("App routing", () => {
   it("navigates between main dashboard routes", async () => {
     renderApp(["/"]);
 
-    expect(await screen.findByText(/Fleet Overview/i)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 2, name: /Fleet Overview/i })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("link", { name: /Events/i }));
-    expect(await screen.findByText(/Event Stream/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("link", { name: /Event Stream/i }));
+    expect(await screen.findByRole("heading", { level: 2, name: /Event Stream/i })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("link", { name: /Issues/i }));
-    expect(await screen.findByText(/Issues Board/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("link", { name: /Issues Board/i }));
+    expect(await screen.findByRole("heading", { level: 2, name: /Issues Board/i })).toBeInTheDocument();
   });
 });
