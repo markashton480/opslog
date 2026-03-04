@@ -6,7 +6,7 @@ interface PaginationProps {
 
 export function Pagination({ hasMore, loading, onLoadMore }: PaginationProps) {
   if (!hasMore) {
-    return <p className="text-sm text-slate-500">No more results.</p>;
+    return <p className="text-xs font-black uppercase tracking-widest text-neo-gray-400 italic">No more results.</p>;
   }
 
   return (
@@ -14,9 +14,9 @@ export function Pagination({ hasMore, loading, onLoadMore }: PaginationProps) {
       type="button"
       onClick={onLoadMore}
       disabled={loading}
-      className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+      className="neo-button bg-neo-gray-950 text-white hover:bg-brand transition-colors text-xs py-2 px-6"
     >
-      {loading ? "Loading..." : "Load More"}
+      {loading ? "LOADING..." : "LOAD MORE"}
     </button>
   );
 }

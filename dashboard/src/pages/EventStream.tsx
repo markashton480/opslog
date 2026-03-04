@@ -135,18 +135,20 @@ export function EventStream() {
   const activeFilterCount = FILTER_KEYS.filter((k) => filters[k]).length;
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-10">
       {/* Page header */}
       <header>
-        <h2 className="text-2xl font-bold tracking-tight text-slate-900">Event Stream</h2>
-        <p className="mt-0.5 text-sm text-slate-500">
-          Filterable timeline of all events across the fleet.
+        <h2 className="text-5xl font-black tracking-tighter uppercase mb-3">Event Stream</h2>
+        <div className="flex items-center gap-4">
+          <p className="text-neo-gray-800 font-bold italic border-l-4 border-brand pl-4">
+            Filterable timeline of all events across the fleet.
+          </p>
           {activeFilterCount > 0 && (
-            <span className="ml-2 inline-flex rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-semibold text-white">
-              {activeFilterCount} filter{activeFilterCount !== 1 ? "s" : ""} active
+            <span className="neo-badge bg-neo-gray-950 text-white">
+              {activeFilterCount} active filter{activeFilterCount !== 1 ? "s" : ""}
             </span>
           )}
-        </p>
+        </div>
       </header>
 
       {/* Filters */}
@@ -164,24 +166,23 @@ export function EventStream() {
 
       {/* Loading / error states */}
       {eventsQuery.isLoading && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-16 animate-pulse rounded-lg bg-slate-100" />
+            <div key={i} className="h-16 animate-pulse neo-card opacity-50 border-dashed" />
           ))}
         </div>
       )}
       {eventsQuery.isError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="neo-card bg-red-100 text-red-700 font-bold">
           Unable to load events. Please check API connectivity.
         </div>
       )}
 
       {/* Empty state */}
       {!eventsQuery.isLoading && !eventsQuery.isError && displayedEvents.length === 0 && (
-        <div className="rounded-lg border border-slate-200 bg-white p-8 text-center" data-testid="empty-state">
-          <div className="text-3xl">📭</div>
-          <h3 className="mt-2 text-base font-semibold text-slate-900">No events found</h3>
-          <p className="mt-1 text-sm text-slate-500">
+        <div className="neo-card bg-neo-gray-100 p-20 text-center" data-testid="empty-state">
+          <h3 className="text-2xl font-black uppercase tracking-tighter text-neo-gray-400 mb-2">No events found</h3>
+          <p className="font-bold italic text-neo-gray-400 mb-6">
             {activeFilterCount > 0
               ? "Try adjusting your filters to see more results."
               : "No events have been recorded yet."}
@@ -190,7 +191,7 @@ export function EventStream() {
             <button
               type="button"
               onClick={() => setFilters(EMPTY_FILTERS)}
-              className="mt-3 rounded-md bg-slate-900 px-4 py-1.5 text-sm font-medium text-white"
+              className="neo-button"
             >
               Clear all filters
             </button>
@@ -200,7 +201,7 @@ export function EventStream() {
 
       {/* Event list */}
       {displayedEvents.length > 0 && (
-        <div className="space-y-2" role="feed" aria-label="Event stream">
+        <div className="space-y-4" role="feed" aria-label="Event stream">
           {displayedEvents.map((event) => (
             <EventRow key={event.id} event={event} />
           ))}
@@ -222,13 +223,13 @@ export function EventStream() {
 
       {/* Footer stats */}
       {displayedEvents.length > 0 && (
-        <p className="text-xs text-slate-400">
-          Showing {displayedEvents.length} event{displayedEvents.length !== 1 ? "s" : ""}
-          {frozenHasMore ? " (more available)" : ""}
+        <div className="flex items-center gap-4 text-xs font-black uppercase tracking-widest text-neo-gray-400 pt-4 border-t-2 border-neo-gray-950/10">
+          <span>Showing {displayedEvents.length} event{displayedEvents.length !== 1 ? "s" : ""}</span>
+          {frozenHasMore && <span className="neo-badge bg-neo-gray-100">More available</span>}
           {eventsQuery.warnings.length > 0 && (
-            <span className="ml-2 text-amber-500">⚠ {eventsQuery.warnings.join(", ")}</span>
+            <span className="text-amber-500">⚠ {eventsQuery.warnings.join(", ")}</span>
           )}
-        </p>
+        </div>
       )}
     </section>
   );

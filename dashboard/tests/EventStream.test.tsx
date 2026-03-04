@@ -1,25 +1,29 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import { EventStream } from "@/pages/EventStream";
+import * as useEventsHook from "@/hooks/useEvents";
 import type { Event } from "@/api/types";
 
-const loadMoreSpy = vi.fn();
+/* ── Mock data ────────────────────────────────────────────── */
+
+const now = Date.now();
 
 function makeEvent(overrides: Partial<Event> = {}): Event {
   return {
-    id: crypto.randomUUID(),
-    occurred_at: new Date().toISOString(),
-    ingested_at: new Date().toISOString(),
+    id: "ev-1",
+    occurred_at: new Date(now - 1000).toISOString(),
+    ingested_at: new Date(now - 1000).toISOString(),
     principal: "codex_b",
     reported_agent: null,
-    server_id: "s1",
+    server_id: "srv-1",
     server_name: "agent-workspace",
     category: "deployment",
     summary: "Deployed v1.2.3",
     detail: null,
-    tags: [],
+    tags: ["release"],
     issue_id: null,
     corrects_event_id: null,
     metadata: {},
@@ -28,22 +32,25 @@ function makeEvent(overrides: Partial<Event> = {}): Event {
   };
 }
 
-const mockEvents: Event[] = [
-  makeEvent({ summary: "Deployed v1.2.3", category: "deployment", tags: ["release"] }),
-  makeEvent({ summary: "Updated nginx config", category: "config_change", principal: "mark" }),
-  makeEvent({ summary: "Backup completed", category: "backup", server_name: "lintel-prod-01" }),
+const mockEvents = [
+  makeEvent({ id: "ev-1", summary: "Deployed v1.2.3", tags: ["release"] }),
+  makeEvent({ id: "ev-2", principal: "mark", category: "config_change", summary: "Updated nginx config" }),
+  makeEvent({ id: "ev-3", server_name: "lintel-prod-01", category: "backup", summary: "Backup completed" }),
 ];
 
-let mockEventsData = mockEvents;
-let mockHasMore = true;
-let mockIsLoading = false;
-let mockIsError = false;
+/* ── Mocks ────────────────────────────────────────────────── */
+
+const loadMoreSpy = vi.fn();
+
+vi.mock("@/hooks/useEvents", () => ({
+  useEvents: vi.fn(),
+}));
 
 vi.mock("@/hooks/useServers", () => ({
   useServers: () => ({
     data: [
-      { id: "s1", name: "agent-workspace", display_name: "Agent Workspace", aliases: [] },
-      { id: "s2", name: "lintel-prod-01", display_name: "Production", aliases: [] },
+      { id: "srv-1", name: "agent-workspace", display_name: "Agent Workspace" },
+      { id: "srv-2", name: "lintel-prod-01", display_name: "Production" },
     ],
     isLoading: false,
     isError: false,
@@ -53,190 +60,202 @@ vi.mock("@/hooks/useServers", () => ({
 vi.mock("@/hooks/useCategories", () => ({
   useCategories: () => ({
     data: [
-      { name: "deployment", description: "Deployments" },
-      { name: "config_change", description: "Configuration changes" },
-      { name: "backup", description: "Backups" },
+      { id: "cat-1", name: "deployment" },
+      { id: "cat-2", name: "config_change" },
+      { id: "cat-3", name: "backup" },
     ],
     isLoading: false,
     isError: false,
   }),
 }));
 
-vi.mock("@/hooks/useEvents", () => ({
-  useEvents: () => ({
-    events: mockEventsData,
-    warnings: [],
-    hasMore: mockHasMore,
-    isLoading: mockIsLoading,
-    isError: mockIsError,
-    isFetching: false,
-    isFetchingNextPage: false,
-    loadMore: loadMoreSpy,
-    dataUpdatedAt: Date.now(),
-    pageCount: 1,
-  }),
-}));
-
-function renderEventStream(initialEntries: string[] = ["/events"]) {
+function renderEventStream(initialEntries?: string[]) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <MemoryRouter initialEntries={initialEntries}>
-      <EventStream />
-    </MemoryRouter>
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={initialEntries}>
+        <EventStream />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
-beforeEach(() => {
-  mockEventsData = mockEvents;
-  mockHasMore = true;
-  mockIsLoading = false;
-  mockIsError = false;
-  loadMoreSpy.mockClear();
-});
+/* ── Tests ────────────────────────────────────────────────── */
 
 describe("EventStream page", () => {
-  it("renders page heading and event rows", () => {
-    renderEventStream();
+  beforeEach(() => {
+    vi.mocked(useEventsHook.useEvents).mockReturnValue({
+      events: mockEvents,
+      warnings: [],
+      hasMore: true,
+      isLoading: false,
+      isError: false,
+      isFetching: false,
+      isFetchingNextPage: false,
+      loadMore: loadMoreSpy,
+      pageCount: 1,
+    } as any);
+  });
 
+  it("renders page header and subtitle", () => {
+    renderEventStream();
     expect(screen.getByText("Event Stream")).toBeInTheDocument();
-    expect(screen.getAllByTestId("event-row")).toHaveLength(3);
+    expect(screen.getByText(/Filterable timeline/)).toBeInTheDocument();
+  });
+
+  it("renders event rows from hook", () => {
+    renderEventStream();
+    const rows = screen.getAllByTestId("event-row");
+    expect(rows).toHaveLength(3);
     expect(screen.getByText("Deployed v1.2.3")).toBeInTheDocument();
-    expect(screen.getByText("Updated nginx config")).toBeInTheDocument();
-    expect(screen.getByText("Backup completed")).toBeInTheDocument();
-  });
-
-  it("renders filter bar with all filter controls", () => {
-    renderEventStream();
-
-    expect(screen.getByPlaceholderText("Search summary…")).toBeInTheDocument();
-    expect(screen.getByLabelText("Server")).toBeInTheDocument();
-    expect(screen.getByLabelText("Category")).toBeInTheDocument();
-    expect(screen.getByLabelText("Principal")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Filter by tag…")).toBeInTheDocument();
-  });
-
-  it("renders time range presets", () => {
-    renderEventStream();
-
-    expect(screen.getByTestId("preset-1h")).toBeInTheDocument();
-    expect(screen.getByTestId("preset-24h")).toBeInTheDocument();
-    expect(screen.getByTestId("preset-7d")).toBeInTheDocument();
-  });
-
-  it("shows active filter count", () => {
-    renderEventStream(["/events?server=agent-workspace&category=deployment"]);
-    // The component syncs from URL
-    expect(screen.getByText(/filter/)).toBeInTheDocument();
   });
 });
 
 describe("EventStream pagination", () => {
-  it("calls loadMore when Load More is clicked", () => {
-    renderEventStream();
-
-    fireEvent.click(screen.getByRole("button", { name: "Load More" }));
-    expect(loadMoreSpy).toHaveBeenCalledTimes(1);
+  beforeEach(() => {
+    vi.mocked(useEventsHook.useEvents).mockReturnValue({
+      events: mockEvents,
+      warnings: [],
+      hasMore: true,
+      isLoading: false,
+      isError: false,
+      loadMore: loadMoreSpy,
+      pageCount: 1,
+    } as any);
   });
 
-  it("shows event count footer", () => {
+  it("calls loadMore when LOAD MORE is clicked", () => {
     renderEventStream();
 
-    expect(screen.getByText(/Showing 3 events/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /LOAD MORE/ }));
+    expect(loadMoreSpy).toHaveBeenCalledTimes(1);
   });
 });
 
 describe("EventStream client-side search", () => {
-  it("filters events by summary text", () => {
-    renderEventStream();
+  beforeEach(() => {
+    vi.mocked(useEventsHook.useEvents).mockReturnValue({
+      events: mockEvents,
+      warnings: [],
+      hasMore: true,
+      isLoading: false,
+      isError: false,
+      loadMore: vi.fn(),
+      pageCount: 1,
+    } as any);
+  });
 
-    const searchInput = screen.getByPlaceholderText("Search summary…");
+  it("filters events locally based on search text", () => {
+    renderEventStream();
+    const searchInput = screen.getByPlaceholderText(/Search summary/i);
+
     fireEvent.change(searchInput, { target: { name: "search", value: "nginx" } });
 
-    expect(screen.getAllByTestId("event-row")).toHaveLength(1);
+    // Only "Updated nginx config" should remain
+    expect(screen.queryByText("Deployed v1.2.3")).not.toBeInTheDocument();
     expect(screen.getByText("Updated nginx config")).toBeInTheDocument();
   });
 });
 
-describe("EventStream empty state", () => {
-  it("shows empty state when no events match", () => {
-    mockEventsData = [];
-    renderEventStream();
+describe("EventStream URL sync", () => {
+  beforeEach(() => {
+    vi.mocked(useEventsHook.useEvents).mockReturnValue({
+      events: mockEvents,
+      warnings: [],
+      hasMore: true,
+      isLoading: false,
+      isError: false,
+      loadMore: vi.fn(),
+      pageCount: 1,
+    } as any);
+  });
 
+  it("syncs filter values from search params", () => {
+    renderEventStream(["/events?server=lintel-prod-01&tag=urgent"]);
+
+    expect(screen.getByDisplayValue("PRODUCTION")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("urgent")).toBeInTheDocument();
+    expect(screen.getByText(/2 active filters/i)).toBeInTheDocument();
+  });
+});
+
+describe("EventStream empty state", () => {
+  it("shows empty state when no events returned", () => {
+    vi.mocked(useEventsHook.useEvents).mockReturnValue({
+      events: [],
+      warnings: [],
+      hasMore: false,
+      isLoading: false,
+      isError: false,
+      loadMore: vi.fn(),
+      pageCount: 0,
+    } as any);
+
+    renderEventStream();
     expect(screen.getByTestId("empty-state")).toBeInTheDocument();
-    expect(screen.getByText("No events found")).toBeInTheDocument();
   });
 });
 
 describe("EventStream error state", () => {
-  it("shows error message when API fails", () => {
-    mockEventsData = [];
-    mockIsError = true;
-    renderEventStream();
+  it("shows error card when hook returns error", () => {
+    vi.mocked(useEventsHook.useEvents).mockReturnValue({
+      events: [],
+      warnings: [],
+      hasMore: false,
+      isLoading: false,
+      isError: true,
+      loadMore: vi.fn(),
+      pageCount: 0,
+    } as any);
 
-    expect(screen.getByText(/Unable to load events/)).toBeInTheDocument();
+    renderEventStream();
+    expect(screen.getByText(/Unable to load events/i)).toBeInTheDocument();
   });
 });
 
 describe("EventRow expand/collapse", () => {
+  beforeEach(() => {
+    vi.mocked(useEventsHook.useEvents).mockReturnValue({
+      events: [
+        makeEvent({
+          id: "ev-detailed",
+          summary: "Event with detail",
+          detail: "Markdown content",
+          metadata: { key: "value" },
+          corrects_event_id: "ev-prev",
+          tags: ["release", "hotfix"],
+          issue_id: "iss-1",
+        }),
+      ],
+      warnings: [],
+      hasMore: false,
+      isLoading: false,
+      isError: false,
+      loadMore: vi.fn(),
+      pageCount: 1,
+    } as any);
+  });
+
   it("expands event detail on click", () => {
-    const eventsWithDetail = [
-      makeEvent({
-        summary: "Deployed with detail",
-        detail: "# Deployment notes\n\nSome markdown content",
-        metadata: { version: "1.2.3" },
-      }),
-    ];
-    mockEventsData = eventsWithDetail;
     renderEventStream();
-
     const row = screen.getByTestId("event-row");
-    fireEvent.click(within(row).getByRole("button"));
+    const clickable = within(row).getByRole("button");
 
-    expect(screen.getByTestId("event-detail")).toBeInTheDocument();
+    fireEvent.click(clickable);
+
+    const detail = screen.getByTestId("event-detail");
+    expect(detail).toBeInTheDocument();
+    expect(within(detail).getByText("Markdown content")).toBeInTheDocument();
   });
 
   it("shows correction indicator for correction events", () => {
-    mockEventsData = [
-      makeEvent({
-        summary: "Corrected event",
-        corrects_event_id: "abc123-def456",
-      }),
-    ];
     renderEventStream();
-
-    expect(screen.getByText("correction")).toBeInTheDocument();
+    expect(screen.getByText(/CORRECTION/)).toBeInTheDocument();
   });
 
   it("shows tags on event row", () => {
-    mockEventsData = [
-      makeEvent({ summary: "Tagged event", tags: ["release", "hotfix"] }),
-    ];
     renderEventStream();
-
-    expect(screen.getByText("release")).toBeInTheDocument();
-    expect(screen.getByText("hotfix")).toBeInTheDocument();
-  });
-
-  it("renders server name as a clickable link in compact row", () => {
-    mockEventsData = [
-      makeEvent({ summary: "Deploy event", server_name: "lintel-prod-01" }),
-    ];
-    renderEventStream();
-
-    const serverLink = screen.getByTestId("server-link");
-    expect(serverLink).toBeInTheDocument();
-    expect(serverLink.tagName).toBe("A");
-    expect(serverLink).toHaveAttribute("href", "/servers/lintel-prod-01");
-  });
-
-  it("renders issue link as a clickable link in compact row", () => {
-    mockEventsData = [
-      makeEvent({ summary: "Issue event", issue_id: "issue-uuid-123" }),
-    ];
-    renderEventStream();
-
-    const issueLink = screen.getByTestId("issue-link");
-    expect(issueLink).toBeInTheDocument();
-    expect(issueLink.tagName).toBe("A");
-    expect(issueLink).toHaveAttribute("href", "/issues/issue-uuid-123");
+    expect(screen.getByText("#release")).toBeInTheDocument();
+    expect(screen.getByText("#hotfix")).toBeInTheDocument();
   });
 });

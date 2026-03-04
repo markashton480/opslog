@@ -210,7 +210,7 @@ describe("IssuesBoard", () => {
     const table = screen.getByTestId("issues-table");
     expect(within(table).getByText(/Title/)).toBeInTheDocument();
     expect(within(table).getByText(/Severity/)).toBeInTheDocument();
-    expect(within(table).getByText(/Updated At/)).toBeInTheDocument();
+    expect(within(table).getByText(/Updated/)).toBeInTheDocument();
     // All issues should appear in rows (including resolved/wontfix — table shows all)
     expect(within(table).getByText("DNS resolver timeout")).toBeInTheDocument();
     expect(within(table).getByText("Old bug fixed")).toBeInTheDocument();

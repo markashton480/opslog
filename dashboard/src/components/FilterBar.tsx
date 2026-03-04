@@ -1,4 +1,5 @@
 import { type ChangeEvent } from "react";
+import { Search, X, Tag, Server, User, List } from "lucide-react";
 
 import { TimeRangePicker } from "@/components/TimeRangePicker";
 
@@ -45,8 +46,10 @@ function handleChange(
   onChange({ ...values, [name]: value });
 }
 
-const selectClasses =
-  "rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm transition focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500";
+const inputClasses =
+  "w-full bg-white border-2 border-neo-gray-950 px-3 py-2 text-sm font-bold focus:outline-none focus:bg-neo-gray-50 transition-colors placeholder:text-neo-gray-300";
+
+const labelClasses = "mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-neo-gray-400";
 
 export function FilterBar({
   values,
@@ -59,12 +62,12 @@ export function FilterBar({
   const hasActiveFilters = Object.values(values).some((v) => v !== "");
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="neo-card bg-white p-6 mb-8">
       {/* Row 1: dropdowns + search */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
         <div>
-          <label htmlFor="filter-search" className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-            Search
+          <label htmlFor="filter-search" className={labelClasses}>
+            <Search size={12} /> Search
           </label>
           <input
             id="filter-search"
@@ -72,63 +75,63 @@ export function FilterBar({
             value={values.search}
             onChange={(e) => handleChange(e, values, onChange)}
             placeholder="Search summary…"
-            className={selectClasses}
+            className={inputClasses}
           />
         </div>
         <div>
-          <label htmlFor="filter-server" className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-            Server
+          <label htmlFor="filter-server" className={labelClasses}>
+            <Server size={12} /> Server
           </label>
           <select
             id="filter-server"
             name="server"
             value={values.server}
             onChange={(e) => handleChange(e, values, onChange)}
-            className={selectClasses}
+            className={inputClasses}
           >
-            <option value="">All servers</option>
+            <option value="">ALL SERVERS</option>
             {serverOptions.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
+              <option key={o.value} value={o.value}>{o.label.toUpperCase()}</option>
             ))}
           </select>
         </div>
         <div>
-          <label htmlFor="filter-category" className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-            Category
+          <label htmlFor="filter-category" className={labelClasses}>
+            <List size={12} /> Category
           </label>
           <select
             id="filter-category"
             name="category"
             value={values.category}
             onChange={(e) => handleChange(e, values, onChange)}
-            className={selectClasses}
+            className={inputClasses}
           >
-            <option value="">All categories</option>
+            <option value="">ALL CATEGORIES</option>
             {categoryOptions.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
+              <option key={o.value} value={o.value}>{o.label.toUpperCase()}</option>
             ))}
           </select>
         </div>
         <div>
-          <label htmlFor="filter-principal" className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-            Principal
+          <label htmlFor="filter-principal" className={labelClasses}>
+            <User size={12} /> Principal
           </label>
           <select
             id="filter-principal"
             name="principal"
             value={values.principal}
             onChange={(e) => handleChange(e, values, onChange)}
-            className={selectClasses}
+            className={inputClasses}
           >
-            <option value="">All principals</option>
+            <option value="">ALL PRINCIPALS</option>
             {principalOptions.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
+              <option key={o.value} value={o.value}>{o.label.toUpperCase()}</option>
             ))}
           </select>
         </div>
         <div>
-          <label htmlFor="filter-tag" className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-            Tag
+          <label htmlFor="filter-tag" className={labelClasses}>
+            <Tag size={12} /> Tag
           </label>
           <input
             id="filter-tag"
@@ -136,26 +139,28 @@ export function FilterBar({
             value={values.tag}
             onChange={(e) => handleChange(e, values, onChange)}
             placeholder="Filter by tag…"
-            className={selectClasses}
+            className={inputClasses}
           />
         </div>
       </div>
 
       {/* Row 2: time range picker + clear button */}
-      <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
-        <TimeRangePicker
-          since={values.since}
-          until={values.until}
-          onSinceChange={(since) => onChange({ ...values, since })}
-          onUntilChange={(until) => onChange({ ...values, until })}
-        />
+      <div className="mt-8 flex flex-wrap items-end justify-between gap-6 pt-6 border-t-2 border-neo-gray-950/10">
+        <div className="flex-1">
+          <TimeRangePicker
+            since={values.since}
+            until={values.until}
+            onSinceChange={(since) => onChange({ ...values, since })}
+            onUntilChange={(until) => onChange({ ...values, until })}
+          />
+        </div>
         <button
           type="button"
           onClick={onClear}
           disabled={!hasActiveFilters}
-          className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-700 transition hover:bg-slate-50 disabled:opacity-40"
+          className="neo-button bg-neo-gray-100 text-neo-gray-950 hover:bg-red-400 hover:text-white disabled:opacity-40 disabled:hover:bg-neo-gray-100 disabled:hover:text-neo-gray-950 py-2 px-4 flex items-center gap-2 text-xs"
         >
-          Clear Filters
+          <X size={14} /> CLEAR ALL
         </button>
       </div>
     </div>

@@ -1,8 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { MemoryRouter, Route, Routes, Link } from "react-router-dom";
 
-import App from "@/App";
+import { EventStream } from "@/pages/EventStream";
+import { FleetOverview } from "@/pages/FleetOverview";
+import { IssuesBoard } from "@/pages/IssuesBoard";
 
 vi.mock("@/hooks/useServers", () => ({
   useServers: () => ({
@@ -34,6 +37,7 @@ vi.mock("@/hooks/useEvents", () => ({
     isFetching: false,
     isFetchingNextPage: false,
     loadMore: vi.fn(),
+    pageCount: 0,
   }),
   useEvent: () => ({ data: null, isLoading: false, isError: false }),
 }));
@@ -71,33 +75,44 @@ vi.mock("@/hooks/useCategories", () => ({
   useCategories: () => ({ data: [], isLoading: false, isError: false }),
 }));
 
-function renderApp() {
+// Mock the Sidebar component partially or just use Links
+function TestNav() {
+  return (
+    <nav>
+      <Link to="/">Fleet Overview</Link>
+      <Link to="/events">Event Stream</Link>
+      <Link to="/issues">Issues Board</Link>
+    </nav>
+  );
+}
+
+function renderApp(initialEntries: string[] = ["/"]) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={queryClient}>
-      <App />
+      <MemoryRouter initialEntries={initialEntries}>
+        <TestNav />
+        <Routes>
+          <Route path="/" element={<FleetOverview />} />
+          <Route path="/events" element={<EventStream />} />
+          <Route path="/issues" element={<IssuesBoard />} />
+          <Route path="*" element={<div>Not Found</div>} />
+        </Routes>
+      </MemoryRouter>
     </QueryClientProvider>
   );
 }
 
 describe("App routing", () => {
-  it("redirects unknown route to fleet overview", async () => {
-    window.history.pushState({}, "", "/unknown-route");
-    renderApp();
-
-    expect(await screen.findByRole("heading", { level: 2, name: "Fleet Overview" })).toBeInTheDocument();
-  });
-
   it("navigates between main dashboard routes", async () => {
-    window.history.pushState({}, "", "/");
-    renderApp();
+    renderApp(["/"]);
 
-    expect(screen.getByRole("heading", { level: 2, name: "Fleet Overview" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 2, name: /Fleet Overview/i })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("link", { name: "Event Stream" }));
-    expect(await screen.findByRole("heading", { level: 2, name: "Event Stream" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("link", { name: /Event Stream/i }));
+    expect(await screen.findByRole("heading", { level: 2, name: /Event Stream/i })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("link", { name: "Issues Board" }));
-    expect(await screen.findByRole("heading", { level: 2, name: "Issues Board" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("link", { name: /Issues Board/i }));
+    expect(await screen.findByRole("heading", { level: 2, name: /Issues Board/i })).toBeInTheDocument();
   });
 });

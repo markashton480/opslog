@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { LayoutGrid, Table as TableIcon } from "lucide-react";
 
 import { PrincipalAvatar } from "@/components/PrincipalAvatar";
 import { SeverityBadge } from "@/components/SeverityBadge";
@@ -160,26 +161,28 @@ export function IssuesBoard() {
   }
 
   return (
-    <section className="space-y-4">
-      <header className="flex flex-wrap items-center justify-between gap-3">
+    <section className="space-y-10">
+      <header className="flex flex-wrap items-center justify-between gap-6 mb-12">
         <div>
-          <h2 className="text-2xl font-semibold text-slate-900">Issues Board</h2>
-          <p className="text-sm text-slate-600">Browse and manage infrastructure issues.</p>
+          <h2 className="text-5xl font-black tracking-tighter uppercase mb-3">Issues Board</h2>
+          <p className="text-neo-gray-800 font-bold italic border-l-4 border-brand pl-4">Browse and manage infrastructure issues.</p>
         </div>
         {/* View toggle */}
-        <div className="flex rounded-lg border border-slate-300 text-sm">
+        <div className="flex bg-white border-2 border-neo-gray-950 shadow-neo-sm">
           <button
             type="button"
             onClick={() => setViewMode("kanban")}
-            className={`px-3 py-1.5 font-medium transition ${viewMode === "kanban" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"} rounded-l-lg`}
+            className={`flex items-center gap-2 px-4 py-2 font-black transition ${viewMode === "kanban" ? "bg-neo-gray-950 text-white" : "text-neo-gray-600 hover:bg-neo-gray-50"}`}
           >
+            <LayoutGrid size={18} />
             Kanban
           </button>
           <button
             type="button"
             onClick={() => setViewMode("table")}
-            className={`px-3 py-1.5 font-medium transition ${viewMode === "table" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"} rounded-r-lg`}
+            className={`flex items-center gap-2 px-4 py-2 font-black border-l-2 border-neo-gray-950 transition ${viewMode === "table" ? "bg-neo-gray-950 text-white" : "text-neo-gray-600 hover:bg-neo-gray-50"}`}
           >
+            <TableIcon size={18} />
             Table
           </button>
         </div>
@@ -193,41 +196,41 @@ export function IssuesBoard() {
         onClear={resetFilters}
       />
 
-      {issuesQuery.isLoading && <p className="text-slate-600">Loading issues…</p>}
-      {issuesQuery.isError && <p className="text-red-700">Unable to load issues.</p>}
+      {issuesQuery.isLoading && <p className="font-bold italic animate-pulse">Loading issues…</p>}
+      {issuesQuery.isError && <div className="neo-card bg-red-100 text-red-700 font-bold">Unable to load issues.</div>}
 
       {!issuesQuery.isLoading && !issuesQuery.isError && allIssues.length === 0 && (
-        <div className="rounded-xl border border-slate-200 bg-white p-10 text-center" data-testid="empty-issues">
-          <p className="text-lg font-medium text-slate-600">No issues match the current filters</p>
+        <div className="neo-card bg-neo-gray-100 p-20 text-center" data-testid="empty-issues">
+          <p className="text-2xl font-black uppercase tracking-tighter text-neo-gray-400">No issues match the current filters</p>
         </div>
       )}
 
       {/* Kanban view */}
       {viewMode === "kanban" && allIssues.length > 0 && (
-        <div className="grid gap-4 lg:grid-cols-4" data-testid="kanban-grid">
+        <div className="grid gap-6 lg:grid-cols-4" data-testid="kanban-grid">
           {([
             { key: "open", label: "Open", rows: groups.open, collapsible: false },
             { key: "investigating", label: "Investigating", rows: groups.investigating, collapsible: false },
             { key: "watching", label: "Watching", rows: groups.watching, collapsible: false },
             { key: "closed", label: "Resolved / Won't Fix", rows: groups.closed, collapsible: true },
           ] as const).map((col) => (
-            <div key={col.key} className="rounded-xl border border-slate-200 bg-slate-50/50 p-3 shadow-sm">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-                  {col.label} <span className="text-slate-400">({col.rows.length})</span>
+            <div key={col.key} className="bg-neo-gray-100/50 border-2 border-neo-gray-950 p-4 shadow-neo-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-sm font-black uppercase tracking-widest text-neo-gray-500">
+                  {col.label} <span className="text-neo-gray-400">({col.rows.length})</span>
                 </h3>
                 {col.collapsible && col.rows.length > 0 && (
                   <button
                     type="button"
                     onClick={() => setResolvedCollapsed(!resolvedCollapsed)}
-                    className="text-xs text-slate-500 hover:text-slate-700"
+                    className="text-[10px] font-black uppercase tracking-widest text-neo-gray-400 hover:text-neo-gray-950 border-b border-dashed border-neo-gray-400"
                   >
                     {resolvedCollapsed ? "Expand" : "Collapse"}
                   </button>
                 )}
               </div>
               {col.collapsible && resolvedCollapsed ? null : (
-                <div className="space-y-2">
+                <div className="space-y-4">
                   {col.rows.map((issue) => (
                     <KanbanCard key={issue.id} issue={issue} />
                   ))}
@@ -240,19 +243,19 @@ export function IssuesBoard() {
 
       {/* Table view */}
       {viewMode === "table" && allIssues.length > 0 && (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm" data-testid="issues-table">
+        <div className="overflow-x-auto border-2 border-neo-gray-950 shadow-neo" data-testid="issues-table">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50">
+            <thead className="border-b-2 border-neo-gray-950 bg-white">
               <tr>
                 {([
                   ["title", "Title"],
                   ["status", "Status"],
                   ["severity", "Severity"],
                   ["server", "Server"],
-                  ["created_by", "Created By"],
+                  ["created_by", "By"],
                   ["first_seen", "First Seen"],
-                  ["last_occurrence", "Last Occurrence"],
-                  ["updated_at", "Updated At"],
+                  ["last_occurrence", "Last Occ."],
+                  ["updated_at", "Updated"],
                 ] as [SortField, string][]).map(([field, label]) => (
                   <th
                     key={field}
@@ -261,32 +264,32 @@ export function IssuesBoard() {
                     tabIndex={0}
                     role="columnheader"
                     aria-sort={sortField === field ? (sortDir === "asc" ? "ascending" : "descending") : undefined}
-                    className="cursor-pointer whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 hover:text-slate-700 select-none"
+                    className="cursor-pointer whitespace-nowrap px-4 py-4 text-[10px] font-black uppercase tracking-widest text-neo-gray-950 hover:bg-neo-gray-50 select-none"
                   >
                     {label}{sortIndicator(field)}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y-2 divide-neo-gray-950 bg-white">
               {tableSorted.map((issue) => (
-                <tr key={issue.id} className="hover:bg-slate-50 transition">
-                  <td className="px-4 py-3">
-                    <Link to={`/issues/${issue.id}`} className="font-medium text-slate-900 hover:text-indigo-600 hover:underline">
+                <tr key={issue.id} className="hover:bg-neo-gray-50 transition-colors">
+                  <td className="px-4 py-4">
+                    <Link to={`/issues/${issue.id}`} className="font-black text-neo-gray-950 hover:text-brand transition-colors uppercase tracking-tight">
                       {issue.title}
                     </Link>
                   </td>
-                  <td className="px-4 py-3"><StatusPill status={issue.status} /></td>
-                  <td className="px-4 py-3"><SeverityBadge severity={issue.severity} /></td>
-                  <td className="px-4 py-3 text-slate-600">{issue.server_name ?? "—"}</td>
-                  <td className="px-4 py-3"><PrincipalAvatar principal={issue.created_by} compact /></td>
-                  <td className="px-4 py-3 text-xs text-slate-500" title={new Date(issue.first_seen).toLocaleString()}>
+                  <td className="px-4 py-4"><StatusPill status={issue.status} /></td>
+                  <td className="px-4 py-4"><SeverityBadge severity={issue.severity} /></td>
+                  <td className="px-4 py-4 font-bold italic text-neo-gray-800">{issue.server_name ?? "—"}</td>
+                  <td className="px-4 py-4"><PrincipalAvatar principal={issue.created_by} compact /></td>
+                  <td className="px-4 py-4 text-[10px] font-bold text-neo-gray-400 uppercase italic" title={new Date(issue.first_seen).toLocaleString()}>
                     {formatRelativeTime(issue.first_seen)}
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-500" title={new Date(issue.last_occurrence).toLocaleString()}>
+                  <td className="px-4 py-4 text-[10px] font-bold text-neo-gray-400 uppercase italic" title={new Date(issue.last_occurrence).toLocaleString()}>
                     {formatRelativeTime(issue.last_occurrence)}
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-500" title={new Date(issue.updated_at).toLocaleString()}>
+                  <td className="px-4 py-4 text-[10px] font-bold text-neo-gray-400 uppercase italic" title={new Date(issue.updated_at).toLocaleString()}>
                     {formatRelativeTime(issue.updated_at)}
                   </td>
                 </tr>
@@ -305,31 +308,22 @@ function KanbanCard({ issue }: { issue: Issue }) {
   return (
     <Link
       to={`/issues/${issue.id}`}
-      className="block rounded-lg border border-slate-200 bg-white p-3 transition hover:shadow-md hover:border-slate-300"
+      className="neo-card neo-card-hover block p-4"
       data-testid="kanban-card"
     >
-      <p className="line-clamp-2 text-sm font-semibold text-slate-900">{issue.title}</p>
-      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+      <p className="line-clamp-2 text-sm font-black text-neo-gray-950 uppercase tracking-tight leading-tight mb-3">{issue.title}</p>
+      <div className="flex flex-wrap items-center gap-2 mb-3">
         <SeverityBadge severity={issue.severity} />
         {issue.server_name && (
-          <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
+          <span className="neo-badge bg-neo-gray-100">
             {issue.server_name}
           </span>
         )}
       </div>
-      <div className="mt-2 flex items-center gap-2">
+      <div className="flex items-center justify-between pt-3 border-t border-neo-gray-950/10">
         <PrincipalAvatar principal={issue.created_by} compact />
-        <span className="text-[10px] text-slate-500">{formatRelativeTime(issue.last_occurrence)}</span>
+        <span className="text-[10px] font-bold italic text-neo-gray-400">{formatRelativeTime(issue.last_occurrence)}</span>
       </div>
-      {issue.tags.length > 0 && (
-        <div className="mt-1.5 flex flex-wrap gap-1">
-          {issue.tags.map((tag) => (
-            <span key={tag} className="inline-flex rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
     </Link>
   );
 }

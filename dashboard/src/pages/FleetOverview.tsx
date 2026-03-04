@@ -21,39 +21,41 @@ export function FleetOverview() {
   const anyError = briefingQueries.some((q) => q.isError);
 
   return (
-    <section className="space-y-6">
-      <header>
-        <h2 className="text-2xl font-semibold text-slate-900">Fleet Overview</h2>
-        <p className="text-sm text-slate-600">
+    <section className="space-y-10">
+      <header className="mb-12">
+        <h2 className="text-5xl font-black tracking-tighter uppercase mb-3">
+          Fleet Overview
+        </h2>
+        <p className="text-neo-gray-800 font-bold italic border-l-4 border-brand pl-4">
           Live server inventory — is everything okay right now?
         </p>
       </header>
 
       {serversQuery.isError ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
-          <p className="text-sm font-medium text-red-700">Unable to load servers.</p>
+        <div className="neo-card bg-red-100 text-center py-10">
+          <p className="text-lg font-black uppercase tracking-tighter text-red-700">Unable to load servers.</p>
         </div>
       ) : serversQuery.isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" data-testid="skeleton-grid">
+        <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3" data-testid="skeleton-grid">
           {Array.from({ length: 3 }).map((_, i) => (
             <ServerCardSkeleton key={i} />
           ))}
         </div>
       ) : serversQuery.data && serversQuery.data.length === 0 ? (
-        <div className="rounded-xl border border-slate-200 bg-white p-10 text-center" data-testid="empty-state">
-          <p className="text-lg font-medium text-slate-600">No servers registered</p>
-          <p className="mt-1 text-sm text-slate-500">
+        <div className="neo-card bg-neo-gray-100 text-center py-20" data-testid="empty-state">
+          <p className="text-2xl font-black uppercase tracking-tighter text-neo-gray-400">No servers registered</p>
+          <p className="mt-2 font-bold italic text-neo-gray-400">
             Servers will appear here once they are added via the API.
           </p>
         </div>
       ) : (
         <>
           {anyError && (
-            <p className="text-sm text-amber-600">
-              Some briefings failed to load. Partial data shown.
-            </p>
+            <div className="neo-badge bg-yellow-400 mb-6">
+              Partial data shown: Some briefings failed to load.
+            </div>
           )}
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
             {briefingQueries.map((q, idx) =>
               q.isSuccess && q.data ? (
                 <ServerCard key={q.data.server.id} briefing={q.data} />

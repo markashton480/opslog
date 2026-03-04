@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { ServerCard, ServerCardSkeleton } from "@/components/ServerCard";
 import { IssueBadge } from "@/components/IssueBadge";
@@ -103,16 +103,16 @@ describe("ServerCard", () => {
     expect(screen.getByText("Agent Workspace")).toBeInTheDocument();
   });
 
-  it("shows green status dot for active server", () => {
+  it("shows active status badge", () => {
     renderCard(makeBriefing({ status: "active" }));
-    const dot = screen.getByTestId("status-dot");
-    expect(dot.className).toContain("bg-emerald-500");
+    const badge = screen.getByText("active");
+    expect(badge.className).toContain("bg-green-400");
   });
 
-  it("shows grey status dot for decommissioned server", () => {
+  it("shows decommissioned status badge", () => {
     renderCard(makeBriefing({ status: "decommissioned" }));
-    const dot = screen.getByTestId("status-dot");
-    expect(dot.className).toContain("bg-slate-400");
+    const badge = screen.getByText("decommissioned");
+    expect(badge.className).toContain("bg-neo-gray-400");
   });
 
   it("displays event count from summary", () => {
@@ -120,35 +120,23 @@ describe("ServerCard", () => {
     expect(screen.getByText("42")).toBeInTheDocument();
   });
 
-  it("shows emerald issue count when no issues", () => {
+  it("shows green issue count bg when no issues", () => {
     renderCard(makeBriefing({ openIssues: [] }));
     const issuesLink = screen.getByTestId("issues-link");
-    expect(issuesLink.className).toContain("text-emerald-600");
+    expect(issuesLink.className).toContain("bg-green-400");
     expect(within(issuesLink).getByText("0")).toBeInTheDocument();
   });
 
-  it("shows red issue count when critical/high issues exist", () => {
+  it("shows red issue count bg when critical/high issues exist", () => {
     renderCard(makeBriefing({ openIssues: [makeIssue("critical")] }));
     const issuesLink = screen.getByTestId("issues-link");
-    expect(issuesLink.className).toContain("text-red-600");
+    expect(issuesLink.className).toContain("bg-red-400");
   });
 
-  it("shows amber issue count when only medium issues", () => {
+  it("shows yellow issue count bg when only medium issues", () => {
     renderCard(makeBriefing({ openIssues: [makeIssue("medium")] }));
     const issuesLink = screen.getByTestId("issues-link");
-    expect(issuesLink.className).toContain("text-amber-600");
-  });
-
-  it("applies red left border for critical severity", () => {
-    renderCard(makeBriefing({ openIssues: [makeIssue("critical")] }));
-    const card = screen.getByTestId("server-card");
-    expect(card.className).toContain("border-l-red-500");
-  });
-
-  it("applies emerald left border when no issues", () => {
-    renderCard(makeBriefing({ openIssues: [] }));
-    const card = screen.getByTestId("server-card");
-    expect(card.className).toContain("border-l-emerald-400");
+    expect(issuesLink.className).toContain("bg-yellow-400");
   });
 
   it("shows relative last event time", () => {
@@ -213,11 +201,5 @@ describe("IssueBadge", () => {
     renderBadge(makeIssue("medium"));
     const link = screen.getByTestId("issue-badge");
     expect(link.getAttribute("href")).toBe("/issues/issue-medium");
-  });
-
-  it("applies severity-colored left border", () => {
-    renderBadge(makeIssue("high"));
-    const badge = screen.getByTestId("issue-badge");
-    expect(badge.className).toContain("border-l-orange-500");
   });
 });

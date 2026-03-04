@@ -27,7 +27,7 @@ describe("Shared components", () => {
 
   it("renders principal avatar text", () => {
     render(<PrincipalAvatar principal="codex_b" />);
-    expect(screen.getByText("codex_b")).toBeInTheDocument();
+    expect(screen.getByText("@codex_b")).toBeInTheDocument();
   });
 
   it("renders compact principal avatar with title", () => {
@@ -55,7 +55,7 @@ describe("Shared components", () => {
     });
     expect(onChange).toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Clear Filters" }));
+    fireEvent.click(screen.getByRole("button", { name: /CLEAR ALL/ }));
     expect(onClear).toHaveBeenCalledTimes(1);
   });
 
@@ -83,7 +83,7 @@ describe("Shared components", () => {
     const onLoadMore = vi.fn();
     render(<Pagination hasMore loading={false} onLoadMore={onLoadMore} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Load More" }));
+    fireEvent.click(screen.getByRole("button", { name: /LOAD MORE/ }));
     expect(onLoadMore).toHaveBeenCalledTimes(1);
   });
 });
@@ -156,9 +156,9 @@ describe("NewEventsToast", () => {
     render(<NewEventsToast count={5} onRefresh={onRefresh} />);
 
     expect(screen.getByText("5")).toBeInTheDocument();
-    expect(screen.getByText(/new events available/)).toBeInTheDocument();
+    expect(screen.getByText(/NEW EVENTS/)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button"));
+    fireEvent.click(screen.getByRole("button", { name: /REFRESH/ }));
     expect(onRefresh).toHaveBeenCalledTimes(1);
   });
 

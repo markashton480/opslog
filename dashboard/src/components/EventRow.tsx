@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { ExternalLink, ChevronDown, ChevronRight } from "lucide-react";
 
 import { CategoryPill } from "@/components/CategoryPill";
 import { PrincipalAvatar } from "@/components/PrincipalAvatar";
@@ -29,7 +30,7 @@ export function EventRow({ event }: EventRowProps) {
 
   return (
     <article
-      className="group rounded-lg border border-slate-200 bg-white transition-shadow hover:shadow-md"
+      className={`neo-card transition-all p-0 overflow-hidden ${expanded ? "shadow-neo-lg -translate-x-1 -translate-y-1" : "hover:bg-neo-gray-50"}`}
       data-testid="event-row"
     >
       {/* Compact row — div with onClick for expand, links use stopPropagation */}
@@ -38,21 +39,21 @@ export function EventRow({ event }: EventRowProps) {
         tabIndex={hasExpandableContent ? 0 : undefined}
         onClick={toggleExpand}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") toggleExpand(); }}
-        className={`flex w-full items-start gap-3 p-3 text-left sm:items-center ${hasExpandableContent ? "cursor-pointer" : "cursor-default"}`}
+        className={`flex w-full items-start gap-4 p-4 text-left sm:items-center ${hasExpandableContent ? "cursor-pointer" : "cursor-default"}`}
         aria-expanded={hasExpandableContent ? expanded : undefined}
       >
         {/* Timestamp */}
-        <div className="flex shrink-0 flex-col items-end" title={`Ingested: ${new Date(event.ingested_at).toLocaleString()}`}>
-          <time className="text-xs font-medium text-slate-600">
+        <div className="flex shrink-0 flex-col items-end min-w-[64px]" title={`Ingested: ${new Date(event.ingested_at).toLocaleString()}`}>
+          <time className="text-xs font-black text-neo-gray-950 uppercase tracking-tighter">
             {new Date(event.occurred_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           </time>
-          <span className="text-[10px] text-slate-400">
+          <span className="text-[10px] font-bold italic text-neo-gray-400 uppercase">
             {formatRelativeTime(event.occurred_at)}
           </span>
         </div>
 
         {/* Principal */}
-        <div className="shrink-0">
+        <div className="shrink-0 flex items-center justify-center">
           <PrincipalAvatar principal={event.principal} compact />
         </div>
 
@@ -61,7 +62,7 @@ export function EventRow({ event }: EventRowProps) {
           <Link
             to={`/servers/${event.server_name}`}
             onClick={(e) => e.stopPropagation()}
-            className="hidden shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 sm:inline-block"
+            className="hidden shrink-0 neo-badge bg-neo-gray-100 hover:bg-brand hover:text-white transition-colors sm:inline-block"
             data-testid="server-link"
           >
             {event.server_name}
@@ -75,22 +76,22 @@ export function EventRow({ event }: EventRowProps) {
 
         {/* Summary + tags */}
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-slate-900">
+          <p className="truncate text-sm font-bold text-neo-gray-950 uppercase tracking-tight">
             {event.corrects_event_id && (
-              <span className="mr-1.5 inline-flex items-center rounded bg-amber-100 px-1 py-0.5 text-[10px] font-semibold uppercase text-amber-700">
-                correction
+              <span className="mr-2 neo-badge bg-brand text-white border-brand">
+                CORRECTION
               </span>
             )}
             {event.summary}
           </p>
           {event.tags.length > 0 && (
-            <div className="mt-0.5 flex flex-wrap gap-1">
+            <div className="mt-1 flex flex-wrap gap-1">
               {event.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="inline-flex rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500"
+                  className="text-[10px] font-black text-neo-gray-400 italic uppercase"
                 >
-                  {tag}
+                  #{tag}
                 </span>
               ))}
             </div>
@@ -102,39 +103,41 @@ export function EventRow({ event }: EventRowProps) {
           <Link
             to={`/issues/${event.issue_id}`}
             onClick={(e) => e.stopPropagation()}
-            className="shrink-0 rounded bg-indigo-50 px-1.5 py-0.5 text-xs font-medium text-indigo-600 transition hover:bg-indigo-100"
+            className="shrink-0 neo-badge bg-brand-light text-white hover:shadow-neo-sm transition-all"
             title="View linked issue"
             data-testid="issue-link"
           >
-            Issue ↗
+            ISSUE ↗
           </Link>
         )}
 
         {/* Expand indicator */}
         {hasExpandableContent && (
-          <span className="shrink-0 text-xs text-slate-400 transition-transform" aria-hidden>
-            {expanded ? "▾" : "▸"}
-          </span>
+          <div className="shrink-0 p-1 bg-neo-gray-100 border-2 border-neo-gray-950 rounded shadow-neo-sm group-hover:bg-brand group-hover:text-white transition-all">
+            {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </div>
         )}
       </div>
 
       {/* Expanded detail */}
       {expanded && (
-        <div className="border-t border-slate-100 bg-slate-50 px-4 py-3" data-testid="event-detail">
-          <div className="grid gap-4 md:grid-cols-2">
+        <div className="border-t-2 border-neo-gray-950 bg-neo-gray-50 p-6" data-testid="event-detail">
+          <div className="grid gap-8 md:grid-cols-2">
             {/* Detail markdown */}
             {event.detail && (
-              <div className="prose prose-sm prose-slate max-w-none">
-                <h4 className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">Detail</h4>
-                <Markdown remarkPlugins={[remarkGfm]}>{event.detail}</Markdown>
+              <div>
+                <h4 className="mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-neo-gray-400">Content</h4>
+                <div className="prose prose-sm prose-neo max-w-none font-bold text-neo-gray-800 italic">
+                  <Markdown remarkPlugins={[remarkGfm]}>{event.detail}</Markdown>
+                </div>
               </div>
             )}
 
             {/* Metadata JSON */}
             {Object.keys(event.metadata).length > 0 && (
               <div>
-                <h4 className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">Metadata</h4>
-                <pre className="overflow-x-auto rounded-md bg-slate-800 p-3 text-xs text-slate-200">
+                <h4 className="mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-neo-gray-400">Metadata</h4>
+                <pre className="overflow-x-auto border-2 border-neo-gray-950 bg-neo-gray-950 p-4 text-xs text-brand-light font-black shadow-neo-sm">
                   {formatMetadata(event.metadata)}
                 </pre>
               </div>
@@ -142,38 +145,38 @@ export function EventRow({ event }: EventRowProps) {
           </div>
 
           {/* Links */}
-          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
+          <div className="mt-8 flex flex-wrap items-center gap-4">
             {event.corrects_event_id && (
-              <span className="inline-flex items-center gap-1 text-amber-600">
-                <span>Corrects event:</span>
-                <code className="rounded bg-amber-50 px-1 font-mono text-[10px]">
-                  {event.corrects_event_id.slice(0, 8)}…
+              <div className="neo-badge bg-yellow-400 flex items-center gap-2">
+                <span>CORRECTS:</span>
+                <code className="font-black bg-white px-1">
+                  {event.corrects_event_id.slice(0, 8)}
                 </code>
-              </span>
+              </div>
             )}
             {event.issue_id && (
               <Link
                 to={`/issues/${event.issue_id}`}
-                className="inline-flex items-center gap-1 text-indigo-600 hover:underline"
+                className="neo-button py-2 px-4 flex items-center gap-2 text-xs"
               >
-                View linked issue →
+                VIEW LINKED ISSUE <ExternalLink size={12} />
               </Link>
             )}
             {event.server_name && (
               <Link
                 to={`/servers/${event.server_name}`}
-                className="inline-flex items-center gap-1 text-slate-500 hover:text-slate-700 hover:underline"
+                className="neo-badge bg-white hover:bg-neo-gray-100 transition-colors"
               >
-                {event.server_name} detail →
+                {event.server_name} DETAIL →
               </Link>
             )}
           </div>
 
           {/* Full timestamps */}
-          <div className="mt-2 flex gap-4 text-[10px] text-slate-400">
-            <span>Occurred: {new Date(event.occurred_at).toLocaleString()}</span>
-            <span>Ingested: {new Date(event.ingested_at).toLocaleString()}</span>
-            <span className="font-mono">ID: {event.id.slice(0, 8)}…</span>
+          <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 pt-4 border-t-2 border-neo-gray-950/10 text-[10px] font-black uppercase tracking-widest text-neo-gray-400">
+            <span>OCCURRED: {new Date(event.occurred_at).toLocaleString()}</span>
+            <span>INGESTED: {new Date(event.ingested_at).toLocaleString()}</span>
+            <span>UUID: {event.id}</span>
           </div>
         </div>
       )}

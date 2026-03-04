@@ -1,18 +1,18 @@
 import type { EventCategory } from "@/api/types";
 
 const categoryStyles: Record<EventCategory, string> = {
-  deployment: "bg-blue-100 text-blue-800",
-  config_change: "bg-violet-100 text-violet-800",
-  dns: "bg-cyan-100 text-cyan-800",
-  service: "bg-amber-100 text-amber-800",
-  security: "bg-red-100 text-red-800",
-  backup: "bg-lime-100 text-lime-800",
-  network: "bg-sky-100 text-sky-800",
-  account: "bg-fuchsia-100 text-fuchsia-800",
-  infra: "bg-indigo-100 text-indigo-800",
-  ci: "bg-emerald-100 text-emerald-800",
-  observation: "bg-slate-100 text-slate-700",
-  other: "bg-zinc-100 text-zinc-700",
+  deployment: "bg-blue-400 text-white",
+  config_change: "bg-violet-400 text-white",
+  dns: "bg-cyan-400 text-neo-gray-950",
+  service: "bg-amber-400 text-neo-gray-950",
+  security: "bg-red-500 text-white",
+  backup: "bg-lime-400 text-neo-gray-950",
+  network: "bg-sky-400 text-white",
+  account: "bg-fuchsia-400 text-white",
+  infra: "bg-indigo-400 text-white",
+  ci: "bg-emerald-400 text-white",
+  observation: "bg-neo-gray-200 text-neo-gray-800",
+  other: "bg-neo-gray-100 text-neo-gray-500",
 };
 
 interface CategoryPillProps {
@@ -20,5 +20,5 @@ interface CategoryPillProps {
 }
 
 export function CategoryPill({ category }: CategoryPillProps) {
-  return <span className={`inline-flex rounded-md px-2 py-1 text-xs font-medium ${categoryStyles[category]}`}>{category}</span>;
+  return <span className={`neo-badge ${categoryStyles[category]}`}>{category}</span>;
 }

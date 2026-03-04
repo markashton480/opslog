@@ -1,5 +1,6 @@
 import type { IssueStatus, Severity } from "@/api/types";
 import type { FilterOption } from "@/components/FilterBar";
+import { X, Server, Tag, Activity, AlertTriangle } from "lucide-react";
 
 export interface IssueFilterValues {
   statuses: IssueStatus[];
@@ -26,8 +27,10 @@ interface IssueFilterBarProps {
   onClear: () => void;
 }
 
-const selectClasses =
-  "rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm transition focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500";
+const inputClasses =
+  "w-full bg-white border-2 border-neo-gray-950 px-3 py-2 text-sm font-bold focus:outline-none focus:bg-neo-gray-50 transition-colors placeholder:text-neo-gray-300";
+
+const labelClasses = "mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-neo-gray-400";
 
 function toggleInArray<T>(arr: T[], item: T): T[] {
   return arr.includes(item) ? arr.filter((x) => x !== item) : [...arr, item];
@@ -48,13 +51,6 @@ const severityLabels: Record<Severity, string> = {
   low: "Low",
 };
 
-const severityColors: Record<Severity, string> = {
-  critical: "accent-red-500",
-  high: "accent-orange-500",
-  medium: "accent-yellow-500",
-  low: "accent-slate-400",
-};
-
 export function IssueFilterBar({ values, serverOptions, onChange, onClear }: IssueFilterBarProps) {
   const isDefault =
     values.statuses.length === ACTIVE_STATUSES.length &&
@@ -64,48 +60,52 @@ export function IssueFilterBar({ values, serverOptions, onChange, onClear }: Iss
     values.tag === "";
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm" data-testid="issue-filter-bar">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="neo-card bg-white p-6 mb-8" data-testid="issue-filter-bar">
+      <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
         {/* Status checkboxes */}
         <div>
-          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Status</p>
-          <div className="flex flex-wrap gap-x-3 gap-y-1">
+          <p className={labelClasses}>
+            <Activity size={12} /> Status
+          </p>
+          <div className="flex flex-col gap-2">
             {ALL_STATUSES.map((s) => (
-              <label key={s} className="flex items-center gap-1.5 text-xs text-slate-700 cursor-pointer">
+              <label key={s} className="flex items-center gap-2 text-xs font-bold text-neo-gray-800 cursor-pointer group">
                 <input
                   type="checkbox"
                   checked={values.statuses.includes(s)}
                   onChange={() => onChange({ ...values, statuses: toggleInArray(values.statuses, s) })}
-                  className="rounded border-slate-300"
+                  className="w-4 h-4 border-2 border-neo-gray-950 rounded-none checked:bg-brand checked:border-neo-gray-950 appearance-none transition-colors cursor-pointer"
                   data-testid={`status-${s}`}
                 />
-                {statusLabels[s]}
+                <span className="group-hover:text-brand transition-colors uppercase tracking-tight">{statusLabels[s]}</span>
               </label>
             ))}
           </div>
           <button
             type="button"
             onClick={() => onChange({ ...values, statuses: [...ACTIVE_STATUSES] })}
-            className="mt-1 text-[10px] font-medium text-indigo-600 hover:underline"
+            className="mt-3 text-[10px] font-black uppercase tracking-widest text-brand hover:underline"
           >
-            Active only
+            ACTIVE ONLY
           </button>
         </div>
 
         {/* Severity checkboxes */}
         <div>
-          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Severity</p>
-          <div className="flex flex-wrap gap-x-3 gap-y-1">
+          <p className={labelClasses}>
+            <AlertTriangle size={12} /> Severity
+          </p>
+          <div className="flex flex-col gap-2">
             {ALL_SEVERITIES.map((s) => (
-              <label key={s} className="flex items-center gap-1.5 text-xs text-slate-700 cursor-pointer">
+              <label key={s} className="flex items-center gap-2 text-xs font-bold text-neo-gray-800 cursor-pointer group">
                 <input
                   type="checkbox"
                   checked={values.severities.includes(s)}
                   onChange={() => onChange({ ...values, severities: toggleInArray(values.severities, s) })}
-                  className={`rounded border-slate-300 ${severityColors[s]}`}
+                  className="w-4 h-4 border-2 border-neo-gray-950 rounded-none checked:bg-neo-gray-950 checked:border-neo-gray-950 appearance-none transition-colors cursor-pointer"
                   data-testid={`severity-${s}`}
                 />
-                {severityLabels[s]}
+                <span className="group-hover:text-brand transition-colors uppercase tracking-tight">{severityLabels[s]}</span>
               </label>
             ))}
           </div>
@@ -113,45 +113,45 @@ export function IssueFilterBar({ values, serverOptions, onChange, onClear }: Iss
 
         {/* Server dropdown */}
         <div>
-          <label htmlFor="issue-filter-server" className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-            Server
+          <label htmlFor="issue-filter-server" className={labelClasses}>
+            <Server size={12} /> Server
           </label>
           <select
             id="issue-filter-server"
             value={values.server}
             onChange={(e) => onChange({ ...values, server: e.target.value })}
-            className={selectClasses}
+            className={inputClasses}
           >
-            <option value="">All servers</option>
+            <option value="">ALL SERVERS</option>
             {serverOptions.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
+              <option key={o.value} value={o.value}>{o.label.toUpperCase()}</option>
             ))}
           </select>
         </div>
 
         {/* Tag input */}
         <div>
-          <label htmlFor="issue-filter-tag" className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-            Tag
+          <label htmlFor="issue-filter-tag" className={labelClasses}>
+            <Tag size={12} /> Tag
           </label>
           <input
             id="issue-filter-tag"
             value={values.tag}
             onChange={(e) => onChange({ ...values, tag: e.target.value })}
             placeholder="Filter by tag…"
-            className={selectClasses}
+            className={inputClasses}
           />
         </div>
       </div>
 
-      <div className="mt-3 flex items-center justify-end">
+      <div className="mt-8 pt-6 border-t-2 border-neo-gray-950/10 flex items-center justify-end">
         <button
           type="button"
           onClick={onClear}
           disabled={isDefault}
-          className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-700 transition hover:bg-slate-50 disabled:opacity-40"
+          className="neo-button bg-neo-gray-100 text-neo-gray-950 hover:bg-red-400 hover:text-white disabled:opacity-40 disabled:hover:bg-neo-gray-100 disabled:hover:text-neo-gray-950 py-2 px-4 flex items-center gap-2 text-xs"
         >
-          Reset Filters
+          <X size={14} /> RESET FILTERS
         </button>
       </div>
     </div>

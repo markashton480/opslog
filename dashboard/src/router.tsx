@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   Navigate,
   NavLink,
@@ -7,6 +7,14 @@ import {
   type RouteObject,
   useLocation,
 } from "react-router-dom";
+import { 
+  LayoutGrid, 
+  ListRestart, 
+  AlertCircle, 
+  Menu,
+  X,
+  ChevronRight
+} from "lucide-react";
 
 import { useServers } from "@/hooks/useServers";
 import { EventStream } from "@/pages/EventStream";
@@ -15,11 +23,27 @@ import { IssueDetail } from "@/pages/IssueDetail";
 import { IssuesBoard } from "@/pages/IssuesBoard";
 import { ServerDetail } from "@/pages/ServerDetail";
 
-function navClassName({ isActive }: { isActive: boolean }): string {
-  return [
-    "block rounded-md px-3 py-2 text-sm font-medium transition",
-    isActive ? "bg-slate-900 text-white" : "text-slate-700 hover:bg-slate-100",
-  ].join(" ");
+function SidebarLink({ to, icon, label, end = false }: { to: string, icon: ReactNode, label: string, end?: boolean }) {
+  return (
+    <NavLink 
+      to={to}
+      end={end}
+      className={({ isActive }) => `
+        flex items-center gap-3 px-4 py-3 font-bold border-2 border-neo-gray-950 transition-all
+        ${isActive 
+          ? "bg-brand text-white shadow-neo translate-x-1 translate-y-1" 
+          : "bg-white text-neo-gray-800 hover:bg-neo-gray-100"}
+      `}
+    >
+      {({ isActive }) => (
+        <>
+          {icon}
+          <span className="flex-1">{label}</span>
+          <ChevronRight size={16} className={`${isActive ? "opacity-100" : "opacity-0"}`} />
+        </>
+      )}
+    </NavLink>
+  );
 }
 
 function AppLayout() {
@@ -32,59 +56,86 @@ function AppLayout() {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_20%_0%,#dbeafe_0,#f8fafc_45%,#eef2ff_100%)] text-slate-900">
-      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Lintel</p>
-            <h1 className="text-xl font-semibold">OpsLog Dashboard</h1>
-          </div>
-          <button
-            type="button"
-            onClick={() => setSidebarOpen((open) => !open)}
+    <div className="min-h-screen bg-neo-gray-200 flex flex-col">
+      {/* Header */}
+      <header className="bg-brand border-2 border-neo-gray-950 shadow-neo-sm sticky top-0 z-50 px-6 py-4 flex justify-between items-center">
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            aria-label={sidebarOpen ? "Close menu" : "Open menu"}
             aria-expanded={sidebarOpen}
-            aria-controls="opslog-sidebar"
-            className="rounded-md border border-slate-300 px-3 py-1 text-sm lg:hidden"
+            aria-controls="app-sidebar"
+            className="lg:hidden bg-white text-neo-gray-950 border-2 border-neo-gray-950 p-2 font-bold shadow-neo-sm active:shadow-none active:translate-x-0.5 active:translate-y-0.5 transition-all"
           >
-            {sidebarOpen ? "Close" : "Menu"}
+            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
+          <h1 className="text-2xl font-black text-white tracking-tighter uppercase italic">
+            OpsLog <span className="text-neo-gray-950 bg-white px-2 border-2 border-neo-gray-950">Fleet</span>
+          </h1>
+        </div>
+        <div className="flex gap-4">
+          <div className="hidden sm:block px-4 py-2 bg-white border-2 border-neo-gray-950 font-bold text-xs shadow-neo-sm">
+            STATUS: <span className="text-green-600 animate-pulse">LIVE</span>
+          </div>
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[260px_1fr] lg:px-8">
-        <aside
-          id="opslog-sidebar"
-          className={`${sidebarOpen ? "block" : "hidden"} rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:block`}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <aside 
+          id="app-sidebar"
+          className={`
+            ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+            lg:translate-x-0 transition-transform duration-300
+            fixed lg:static z-40 w-72 h-full bg-white border-r-2 border-neo-gray-950 p-6
+            flex flex-col gap-6 overflow-y-auto
+          `}
         >
-          <nav className="space-y-1">
-            <NavLink to="/" end className={navClassName}>
-              Fleet Overview
-            </NavLink>
-            <NavLink to="/events" className={navClassName}>
-              Event Stream
-            </NavLink>
-            <NavLink to="/issues" className={navClassName}>
-              Issues Board
-            </NavLink>
+          <nav className="flex flex-col gap-3">
+            <SidebarLink to="/" icon={<LayoutGrid size={20} />} label="Fleet Overview" end />
+            <SidebarLink to="/events" icon={<ListRestart size={20} />} label="Event Stream" />
+            <SidebarLink to="/issues" icon={<AlertCircle size={20} />} label="Issues Board" />
           </nav>
 
-          <div className="mt-6 border-t border-slate-200 pt-4">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Servers</h2>
-            {serversQuery.isLoading ? <p className="mt-2 text-sm text-slate-500">Loading...</p> : null}
-            <ul className="mt-2 space-y-1">
+          <div className="mt-4 pt-4 border-t-2 border-neo-gray-950">
+            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-neo-gray-400 mb-4">Servers</h2>
+            {serversQuery.isLoading ? (
+              <div className="animate-pulse flex flex-col gap-2">
+                {[1, 2, 3].map(i => <div key={i} className="h-10 bg-neo-gray-100 border-2 border-neo-gray-950 shadow-neo-sm" />)}
+              </div>
+            ) : null}
+            <ul className="space-y-2">
               {(serversQuery.data ?? []).map((server) => (
                 <li key={server.id}>
-                  <NavLink to={`/servers/${server.name}`} className={navClassName}>
+                  <NavLink 
+                    to={`/servers/${server.name}`}
+                    className={({ isActive }) => `
+                      flex items-center gap-2 px-3 py-2 font-bold border-2 border-neo-gray-950 text-sm transition-all
+                      ${isActive 
+                        ? "bg-neo-gray-950 text-white shadow-neo-sm translate-x-0.5 translate-y-0.5" 
+                        : "bg-white text-neo-gray-700 hover:bg-neo-gray-50"}
+                    `}
+                  >
+                    <span className={`w-2 h-2 border border-neo-gray-950 ${server.status === "active" ? "bg-green-400" : "bg-neo-gray-300"}`} />
                     {server.name}
                   </NavLink>
                 </li>
               ))}
             </ul>
           </div>
+
+          <div className="mt-auto pt-6">
+            <div className="p-4 bg-brand-light border-2 border-neo-gray-950 text-white text-xs font-black shadow-neo-sm italic uppercase tracking-widest">
+              OpsLog
+            </div>
+          </div>
         </aside>
 
-        <main className="min-w-0">
-          <Outlet />
+        {/* Main Content */}
+        <main className="flex-1 overflow-auto p-6 lg:p-10">
+          <div className="max-w-7xl mx-auto">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

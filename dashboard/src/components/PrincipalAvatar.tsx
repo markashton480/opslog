@@ -33,10 +33,12 @@ interface PrincipalAvatarProps {
 }
 
 export function PrincipalAvatar({ principal, compact }: PrincipalAvatarProps) {
+  const bgColor = colorForPrincipal(principal);
+  
   if (compact) {
     return (
       <span
-        className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold text-white ${colorForPrincipal(principal)}`}
+        className={`inline-flex h-6 w-6 items-center justify-center border-2 border-neo-gray-950 text-[10px] font-black text-white shadow-neo-sm ${bgColor}`}
         title={principal}
       >
         {initialsFromPrincipal(principal)}
@@ -45,14 +47,14 @@ export function PrincipalAvatar({ principal, compact }: PrincipalAvatarProps) {
   }
 
   return (
-    <span className="inline-flex items-center gap-2">
+    <span className="inline-flex items-center gap-2 group">
       <span
         aria-hidden
-        className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-white ${colorForPrincipal(principal)}`}
+        className={`inline-flex h-8 w-8 items-center justify-center border-2 border-neo-gray-950 text-xs font-black text-white shadow-neo-sm group-hover:shadow-neo transition-all ${bgColor}`}
       >
         {initialsFromPrincipal(principal)}
       </span>
-      <span className="text-sm font-medium text-slate-700">{principal}</span>
+      <span className="text-sm font-black text-neo-gray-800 uppercase italic tracking-tight">@{principal}</span>
     </span>
   );
 }

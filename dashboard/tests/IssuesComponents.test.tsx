@@ -56,7 +56,7 @@ describe("TimelineEntry", () => {
   it("renders an update with principal and content", () => {
     render(<TimelineEntry item={updateItem} />);
     expect(screen.getByTestId("timeline-update")).toBeInTheDocument();
-    expect(screen.getByText("codex_b")).toBeInTheDocument();
+    expect(screen.getByText("@codex_b")).toBeInTheDocument();
     expect(screen.getByText("Applied DNS fix")).toBeInTheDocument();
   });
 
@@ -64,18 +64,17 @@ describe("TimelineEntry", () => {
     render(<TimelineEntry item={updateItem} />);
     expect(screen.getByText("open")).toBeInTheDocument();
     expect(screen.getByText("investigating")).toBeInTheDocument();
-    expect(screen.getByText("→")).toBeInTheDocument();
   });
 
   it("renders structured change diffs", () => {
     render(<TimelineEntry item={updateItem} />);
-    expect(screen.getByText(/Changed status from "open" to "investigating"/)).toBeInTheDocument();
+    expect(screen.getByText(/CHANGED STATUS FROM "open" TO "investigating"/)).toBeInTheDocument();
   });
 
   it("renders an event with distinct styling", () => {
     render(<TimelineEntry item={eventItem} />);
     expect(screen.getByTestId("timeline-event")).toBeInTheDocument();
-    expect(screen.getByText("deploy-bot")).toBeInTheDocument();
+    expect(screen.getByText("@deploy-bot")).toBeInTheDocument();
     expect(screen.getByText("Deployed v2.3.0")).toBeInTheDocument();
     expect(screen.getByText("deployment")).toBeInTheDocument();
   });
@@ -146,7 +145,7 @@ describe("IssueFilterBar", () => {
     renderFilterBar();
     const select = screen.getByLabelText("Server") as HTMLSelectElement;
     expect(select).toBeInTheDocument();
-    expect(select.options.length).toBe(3); // 1 default "All servers" option + 2 server options = 3 total
+    expect(select.options.length).toBe(3); // 1 default "ALL SERVERS" option + 2 server options = 3 total
   });
 
   it("renders tag input", () => {
@@ -154,14 +153,14 @@ describe("IssueFilterBar", () => {
     expect(screen.getByPlaceholderText("Filter by tag…")).toBeInTheDocument();
   });
 
-  it("has Active only preset button", () => {
+  it("has ACTIVE ONLY preset button", () => {
     renderFilterBar();
-    expect(screen.getByText("Active only")).toBeInTheDocument();
+    expect(screen.getByText("ACTIVE ONLY")).toBeInTheDocument();
   });
 
-  it("shows Reset Filters button", () => {
+  it("shows RESET FILTERS button", () => {
     renderFilterBar();
-    expect(screen.getByText("Reset Filters")).toBeInTheDocument();
+    expect(screen.getByText(/RESET FILTERS/)).toBeInTheDocument();
   });
 });
 

@@ -3,8 +3,8 @@ import type { Severity } from "@/api/types";
 const severityStyles: Record<Severity, string> = {
   critical: "bg-red-600 text-white",
   high: "bg-orange-500 text-white",
-  medium: "bg-yellow-400 text-slate-900",
-  low: "bg-slate-300 text-slate-900",
+  medium: "bg-yellow-400 text-neo-gray-950",
+  low: "bg-neo-gray-300 text-neo-gray-950",
 };
 
 interface SeverityBadgeProps {
@@ -13,7 +13,7 @@ interface SeverityBadgeProps {
 
 export function SeverityBadge({ severity }: SeverityBadgeProps) {
   return (
-    <span className={`inline-flex rounded-md px-2 py-1 text-xs font-semibold uppercase ${severityStyles[severity]}`}>
+    <span className={`neo-badge ${severityStyles[severity]}`}>
       {severity}
     </span>
   );

@@ -6,6 +6,6 @@ import { PrincipalAvatar } from "@/components/PrincipalAvatar";
 describe("Auth token display helpers", () => {
   it("renders principal identifier", () => {
     render(<PrincipalAvatar principal="readonly" />);
-    expect(screen.getByText("readonly")).toBeInTheDocument();
+    expect(screen.getByText("@readonly")).toBeInTheDocument();
   });
 });
