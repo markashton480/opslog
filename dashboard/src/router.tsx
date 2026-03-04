@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   Navigate,
   NavLink,
@@ -23,7 +23,7 @@ import { IssueDetail } from "@/pages/IssueDetail";
 import { IssuesBoard } from "@/pages/IssuesBoard";
 import { ServerDetail } from "@/pages/ServerDetail";
 
-function SidebarLink({ to, icon, label, end = false }: { to: string, icon: React.ReactNode, label: string, end?: boolean }) {
+function SidebarLink({ to, icon, label, end = false }: { to: string, icon: ReactNode, label: string, end?: boolean }) {
   return (
     <NavLink 
       to={to}
@@ -62,6 +62,9 @@ function AppLayout() {
         <div className="flex items-center gap-4">
           <button 
             onClick={() => setSidebarOpen(!sidebarOpen)}
+            aria-label={sidebarOpen ? "Close menu" : "Open menu"}
+            aria-expanded={sidebarOpen}
+            aria-controls="app-sidebar"
             className="lg:hidden bg-white text-neo-gray-950 border-2 border-neo-gray-950 p-2 font-bold shadow-neo-sm active:shadow-none active:translate-x-0.5 active:translate-y-0.5 transition-all"
           >
             {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
@@ -82,12 +85,15 @@ function AppLayout() {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <aside className={`
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-          lg:translate-x-0 transition-transform duration-300
-          fixed lg:static z-40 w-72 h-full bg-white border-r-2 border-neo-gray-950 p-6
-          flex flex-col gap-6 overflow-y-auto
-        `}>
+        <aside 
+          id="app-sidebar"
+          className={`
+            ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+            lg:translate-x-0 transition-transform duration-300
+            fixed lg:static z-40 w-72 h-full bg-white border-r-2 border-neo-gray-950 p-6
+            flex flex-col gap-6 overflow-y-auto
+          `}
+        >
           <nav className="flex flex-col gap-3">
             <SidebarLink to="/" icon={<LayoutGrid size={20} />} label="Overview" end />
             <SidebarLink to="/events" icon={<ListRestart size={20} />} label="Events" />
