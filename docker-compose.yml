@@ -1,52 +1,70 @@
-version: "3.8"
-
 services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: opslog
-      POSTGRES_PASSWORD: opslog
-      POSTGRES_DB: opslog
+      POSTGRES_USER: ${POSTGRES_USER:-opslog}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_DB: ${POSTGRES_DB:-opslog}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./deploy/postgres/postgresql.conf:/etc/postgresql/custom.conf:ro
+      - ./deploy/postgres/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+    command: postgres -c config_file=/etc/postgresql/custom.conf
     networks:
-      - opslog_network
+      - opslog_internal
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U opslog -d opslog"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-opslog} -d $${POSTGRES_DB:-opslog}"]
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   api:
     build:
       context: .
       dockerfile: api/Dockerfile
-    ports:
-      - "8600:8600"
+    env_file: .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://opslog:opslog@postgres:5432/opslog
-      API_HOST: 0.0.0.0
-      API_PORT: 8600
+      DATABASE_URL: "postgresql+asyncpg://${POSTGRES_USER:-opslog}:${POSTGRES_PASSWORD:?err}@postgres:5432/${POSTGRES_DB:-opslog}"
+      API_HOST: "0.0.0.0"
+      API_PORT: "8600"
     depends_on:
       postgres:
         condition: service_healthy
     networks:
-      - opslog_network
+      - opslog_internal
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
   dashboard:
     build:
       context: .
       dockerfile: dashboard/Dockerfile
+      args:
+        VITE_OPSLOG_API_URL: ${VITE_OPSLOG_API_URL:-/api/v1}
+        VITE_OPSLOG_TOKEN: ${VITE_OPSLOG_TOKEN:?VITE_OPSLOG_TOKEN must be set}
+    ports:
+      - "${LISTEN_ADDR:-127.0.0.1}:${DASHBOARD_PORT:-8601}:8601"
     depends_on:
       - api
     networks:
-      - opslog_network
+      - opslog_internal
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 64M
 
 volumes:
   postgres_data:
 
 networks:
-  opslog_network:
+  opslog_internal:
     driver: bridge

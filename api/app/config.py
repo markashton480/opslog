@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -6,10 +6,12 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8600
     log_level: str = "INFO"
+    app_version: str = "0.3.0"
+    max_request_bytes: int = 512 * 1024
+    max_detail_bytes: int = 200 * 1024
+    max_metadata_bytes: int = 200 * 1024
 
-    class Config:
-        env_file = ".env"
-        extra = "allow"
+    model_config = SettingsConfigDict(env_file=".env", extra="allow")
 
 
 settings = Settings()

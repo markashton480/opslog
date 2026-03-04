@@ -14,6 +14,19 @@
   --shadow-neo: 4px 4px 0px 0px #030712;
   --shadow-neo-lg: 8px 8px 0px 0px #030712;
   --shadow-neo-sm: 2px 2px 0px 0px #030712;
+
+  --animate-slide-down: slide-down 0.3s ease-out;
+
+  @keyframes slide-down {
+    from {
+      opacity: 0;
+      transform: translateY(-12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }
 
 @layer base {
