@@ -135,7 +135,7 @@ export async function seedTestData(): Promise<SeedResult> {
   await apiPut("/servers/e2e-test-server", {
     display_name: "E2E Test Server",
     environment: "test",
-  }, ADMIN_TOKEN);
+  });
 
   // Create events across servers and categories (dedupe_key for idempotent re-runs)
   const events = [

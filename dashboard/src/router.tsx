@@ -191,13 +191,19 @@ function AuthUnavailableScreen({ message }: { message: string }) {
   );
 }
 
-function AuthCallbackPage() {
+function AuthScreenFrame({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-neo-gray-200 p-8">
-      <div className="mx-auto max-w-xl">
-        <AuthLoadingScreen />
-      </div>
+      <div className="mx-auto max-w-xl">{children}</div>
     </div>
+  );
+}
+
+function AuthCallbackPage() {
+  return (
+    <AuthScreenFrame>
+      <AuthLoadingScreen />
+    </AuthScreenFrame>
   );
 }
 
@@ -211,22 +217,34 @@ function RequireAuth() {
     }
   }, [auth.login, auth.mode, auth.status, location.pathname]);
 
-  if (auth.status === "loading") {
-    return <AuthLoadingScreen />;
+  if (auth.status === "loading" || auth.status === "logging_out") {
+    return (
+      <AuthScreenFrame>
+        <AuthLoadingScreen />
+      </AuthScreenFrame>
+    );
   }
 
   if (auth.status === "error") {
     return (
-      <AuthUnavailableScreen message={auth.error || "OIDC configuration or startup failed."} />
+      <AuthScreenFrame>
+        <AuthUnavailableScreen message={auth.error || "OIDC configuration or startup failed."} />
+      </AuthScreenFrame>
     );
   }
 
   if (auth.status === "unauthenticated") {
     if (auth.mode === "oidc") {
-      return <AuthLoadingScreen />;
+      return (
+        <AuthScreenFrame>
+          <AuthLoadingScreen />
+        </AuthScreenFrame>
+      );
     }
     return (
-      <AuthUnavailableScreen message={auth.error || "Dashboard token mode is not configured."} />
+      <AuthScreenFrame>
+        <AuthUnavailableScreen message={auth.error || "Dashboard token mode is not configured."} />
+      </AuthScreenFrame>
     );
   }
 

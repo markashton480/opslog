@@ -8,13 +8,14 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { UserManager, type UserManagerSettings } from "oidc-client-ts";
+import { UserManager, type User, type UserManagerSettings } from "oidc-client-ts";
 
 import { setTokenProvider, setUnauthorizedHandler } from "@/api/client";
+import type { ApiResponse, MeResponse } from "@/api/types";
 
 type AuthMode = "token" | "oidc";
-type AuthStatus = "loading" | "authenticated" | "unauthenticated" | "error";
-type AuthRole = "admin" | "writer" | "reader" | null;
+type AuthStatus = "loading" | "authenticated" | "unauthenticated" | "logging_out" | "error";
+type AuthRole = MeResponse["role"] | null;
 
 interface AuthContextValue {
   mode: AuthMode;
@@ -31,12 +32,12 @@ interface AuthContextValue {
 
 const DEFAULT_AUTH_CONTEXT: AuthContextValue = {
   mode: "token",
-  status: "authenticated",
+  status: "unauthenticated",
   token: null,
   principal: null,
-  role: "writer",
+  role: null,
   error: null,
-  canWrite: true,
+  canWrite: false,
   login: async () => {},
   logout: async () => {},
   refreshIdentity: async () => {},
@@ -86,16 +87,7 @@ function hasAuthorizationParams(search: string): boolean {
   return params.has("code") || params.has("error");
 }
 
-interface MeResponse {
-  data: {
-    principal: string;
-    role: AuthRole;
-    auth_source: "token" | "oidc";
-  };
-  warnings: string[];
-}
-
-async function fetchIdentity(token: string): Promise<MeResponse["data"]> {
+async function fetchIdentity(token: string): Promise<MeResponse> {
   const response = await fetch(`${BASE_URL}/me`, {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -104,7 +96,7 @@ async function fetchIdentity(token: string): Promise<MeResponse["data"]> {
   if (!response.ok) {
     throw new Error(`Failed to load identity: ${response.status}`);
   }
-  const payload = (await response.json()) as MeResponse;
+  const payload = (await response.json()) as ApiResponse<MeResponse>;
   return payload.data;
 }
 
@@ -117,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const userManagerRef = useRef<UserManager | null>(null);
   const loginInFlightRef = useRef(false);
+  const logoutInFlightRef = useRef(false);
 
   const loadIdentity = useCallback(async (value: string) => {
     const identity = await fetchIdentity(value);
@@ -148,6 +141,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (mode !== "oidc") {
       return;
     }
+    if (logoutInFlightRef.current) {
+      return;
+    }
     const manager = userManagerRef.current;
     if (!manager || loginInFlightRef.current) {
       return;
@@ -165,12 +161,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     const manager = userManagerRef.current;
-    if (!manager) {
+    if (!manager || logoutInFlightRef.current) {
       return;
     }
-    await manager.removeUser();
-    setUnauthenticatedState(null);
-    await manager.signoutRedirect();
+    logoutInFlightRef.current = true;
+    setStatus("logging_out");
+    setToken(null);
+    setPrincipal(null);
+    setRole(null);
+    setTokenProvider(() => null);
+    setError(null);
+    try {
+      await manager.removeUser();
+      await manager.signoutRedirect();
+    } catch {
+      setUnauthenticatedState("logout_failed");
+    } finally {
+      logoutInFlightRef.current = false;
+    }
   }, [mode, setUnauthenticatedState]);
 
   const refreshIdentity = useCallback(async () => {
@@ -190,7 +198,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setUnauthorizedHandler(async () => {
-      if (mode === "oidc") {
+      if (mode === "oidc" && !logoutInFlightRef.current) {
         setUnauthenticatedState("session_expired");
         await login();
       }
@@ -204,6 +212,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     let manager: UserManager | null = null;
     let onTokenExpired: (() => void) | null = null;
+    let onUserLoaded: ((user: User) => void) | null = null;
 
     async function initialiseTokenMode() {
       if (!TOKEN_FROM_ENV) {
@@ -236,9 +245,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       userManagerRef.current = manager;
 
       onTokenExpired = () => {
-        void login();
+        if (!logoutInFlightRef.current) {
+          void login();
+        }
       };
       manager.events.addAccessTokenExpired(onTokenExpired);
+      onUserLoaded = (user: User) => {
+        if (cancelled || logoutInFlightRef.current || !user.access_token) {
+          return;
+        }
+        void setAuthenticatedState(user.access_token).catch(() => {
+          if (!cancelled) {
+            setUnauthenticatedState("session_expired");
+          }
+        });
+      };
+      manager.events.addUserLoaded(onUserLoaded);
 
       try {
         const callbackPath = new URL(settings.redirect_uri, window.location.origin).pathname;
@@ -282,6 +304,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       if (manager && onTokenExpired) {
         manager.events.removeAccessTokenExpired(onTokenExpired);
+      }
+      if (manager && onUserLoaded) {
+        manager.events.removeUserLoaded(onUserLoaded);
       }
     };
   }, [login, mode, setAuthenticatedState, setUnauthenticatedState]);

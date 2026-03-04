@@ -97,4 +97,23 @@ describe("Auth routing", () => {
     expect(await screen.findByText("Authentication Unavailable")).toBeInTheDocument();
     expect(screen.getByText("missing_dashboard_token")).toBeInTheDocument();
   });
+
+  it("does not trigger login while oidc logout is in progress", async () => {
+    const login = vi.fn();
+    mockUseAuth.mockReturnValue({
+      mode: "oidc",
+      status: "logging_out",
+      canWrite: false,
+      principal: null,
+      role: null,
+      error: null,
+      login,
+      logout: vi.fn(),
+      refreshIdentity: vi.fn(),
+    });
+
+    renderApp("/");
+    expect(await screen.findByText("Authenticating...")).toBeInTheDocument();
+    await waitFor(() => expect(login).not.toHaveBeenCalled());
+  });
 });

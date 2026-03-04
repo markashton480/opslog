@@ -3,7 +3,7 @@ from collections.abc import Iterator
 import pytest
 
 from app.config import settings
-from app.oidc import OIDCVerificationResult
+from app.oidc import OIDCVerificationError, OIDCVerificationResult
 
 
 @pytest.fixture
@@ -91,3 +91,17 @@ async def test_me_uses_oidc_auth_source(client, monkeypatch, oidc_settings_overr
     assert payload["data"]["principal"] == "mark"
     assert payload["data"]["role"] == "admin"
     assert payload["data"]["auth_source"] == "oidc"
+
+
+@pytest.mark.asyncio
+async def test_oidc_verification_failure_is_logged(client, monkeypatch, oidc_settings_override, caplog):
+    async def fake_verify(_: str):
+        raise OIDCVerificationError("invalid_jwt_claims")
+
+    monkeypatch.setattr("app.auth.verify_oidc_token", fake_verify)
+
+    with caplog.at_level("WARNING"):
+        response = await client.get("/api/v1/events", headers={"Authorization": "Bearer part1.part2.part3"})
+
+    assert response.status_code == 401
+    assert "OIDC token verification failed: invalid_jwt_claims" in caplog.text

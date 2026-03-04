@@ -31,6 +31,7 @@ class OIDCVerifier:
         self._jwks_uri: str | None = None
         self._jwks_cache: dict[str, Any] | None = None
         self._jwks_expires_at: float = 0.0
+        self._http_client: httpx.AsyncClient | None = None
 
     async def verify(self, token: str) -> OIDCVerificationResult:
         issuer = settings.oidc_issuer
@@ -43,19 +44,23 @@ class OIDCVerifier:
         except jwt.PyJWTError as exc:
             raise OIDCVerificationError("invalid_jwt_header") from exc
 
+        allowed_algorithms = [alg for alg in settings.oidc_algorithms if alg]
+        if not allowed_algorithms:
+            raise OIDCVerificationError("oidc_misconfigured")
+
         alg = header.get("alg")
-        if not isinstance(alg, str) or alg != "RS256":
+        if not isinstance(alg, str) or alg not in allowed_algorithms:
             raise OIDCVerificationError("invalid_jwt_alg")
 
         kid = header.get("kid")
         jwks, warnings = await self._get_jwks()
-        key = self._resolve_key(jwks, kid)
+        key = self._resolve_key(jwks, kid, alg)
 
         try:
             claims = jwt.decode(
                 token,
                 key=key,
-                algorithms=["RS256"],
+                algorithms=allowed_algorithms,
                 audience=audience,
                 issuer=issuer,
                 options={"verify_signature": True, "verify_exp": True, "verify_nbf": True},
@@ -118,10 +123,11 @@ class OIDCVerifier:
     async def _fetch_json(self, url: str) -> dict[str, Any]:
         timeout = settings.oidc_http_timeout_seconds
         try:
-            async with httpx.AsyncClient(timeout=timeout) as client:
-                response = await client.get(url)
-                response.raise_for_status()
-                payload = response.json()
+            if self._http_client is None:
+                self._http_client = httpx.AsyncClient(timeout=timeout)
+            response = await self._http_client.get(url, timeout=timeout)
+            response.raise_for_status()
+            payload = response.json()
         except (httpx.HTTPError, ValueError) as exc:
             raise OIDCVerificationError("oidc_http_error") from exc
 
@@ -130,7 +136,7 @@ class OIDCVerifier:
         return payload
 
     @staticmethod
-    def _resolve_key(jwks: dict[str, Any], kid: str | None):
+    def _resolve_key(jwks: dict[str, Any], kid: str | None, alg: str):
         keys = jwks.get("keys")
         if not isinstance(keys, list):
             raise OIDCVerificationError("invalid_jwks")
@@ -149,9 +155,17 @@ class OIDCVerifier:
             raise OIDCVerificationError("oidc_kid_not_found")
 
         try:
-            return jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(selected_key))
+            algorithm = jwt.algorithms.get_default_algorithms().get(alg)
+            if algorithm is None:
+                raise OIDCVerificationError("invalid_jwt_alg")
+            return algorithm.from_jwk(json.dumps(selected_key))
         except (TypeError, ValueError) as exc:
             raise OIDCVerificationError("invalid_jwk") from exc
+
+    async def close(self) -> None:
+        if self._http_client is not None:
+            await self._http_client.aclose()
+            self._http_client = None
 
     def reset_cache_for_tests(self) -> None:
         self._jwks_uri = None
@@ -164,6 +178,10 @@ _verifier = OIDCVerifier()
 
 async def verify_oidc_token(token: str) -> OIDCVerificationResult:
     return await _verifier.verify(token)
+
+
+async def close_oidc_verifier() -> None:
+    await _verifier.close()
 
 
 def reset_oidc_cache_for_tests() -> None:

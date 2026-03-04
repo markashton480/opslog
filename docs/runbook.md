@@ -72,6 +72,7 @@ OIDC_ENABLED=true
 OIDC_ISSUER=https://auth.lintel.digital/realms/lintel
 OIDC_AUDIENCE=opslog
 OIDC_USERNAME_CLAIM=preferred_username
+OIDC_ALGORITHMS=RS256
 ```
 
 Notes:

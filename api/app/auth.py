@@ -1,5 +1,6 @@
 import asyncio
 import hashlib
+import logging
 from typing import Any
 
 from fastapi import HTTPException, Request
@@ -10,6 +11,8 @@ from app.config import settings
 from app.db import get_pool
 from app.enums import Role
 from app.oidc import OIDCVerificationError, verify_oidc_token
+
+logger = logging.getLogger(__name__)
 
 EXEMPT_PATHS = {
     "/api/v1/health",
@@ -93,6 +96,8 @@ async def _resolve_principal(token: str, request: Request) -> Any | None:
 
 
 def _looks_like_jwt(token: str) -> bool:
+    # Legacy API tokens are generated as `opslog_<name>_<hex>` and never contain dots.
+    # JWTs always have three segments separated by dots.
     return token.count(".") == 2
 
 
@@ -116,7 +121,8 @@ async def _resolve_legacy_principal(token: str, request: Request) -> Any | None:
 async def _resolve_oidc_principal(token: str, request: Request) -> Any | None:
     try:
         verification = await verify_oidc_token(token)
-    except OIDCVerificationError:
+    except OIDCVerificationError as exc:
+        logger.warning("OIDC token verification failed: %s", exc.code)
         return None
 
     username_claim = settings.oidc_username_claim
