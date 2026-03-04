@@ -86,6 +86,7 @@ const mockUseIssues = vi.fn();
 const mockUseIssue = vi.fn();
 const mockUseServers = vi.fn();
 const mockUseEvents = vi.fn();
+const mockUseAuth = vi.fn();
 
 vi.mock("@/hooks/useIssues", () => ({
   useIssues: (...args: unknown[]) => mockUseIssues(...args),
@@ -98,6 +99,10 @@ vi.mock("@/hooks/useServers", () => ({
 
 vi.mock("@/hooks/useEvents", () => ({
   useEvents: (...args: unknown[]) => mockUseEvents(...args),
+}));
+
+vi.mock("@/auth/context", () => ({
+  useAuth: () => mockUseAuth(),
 }));
 
 vi.mock("@/api/client", () => ({
@@ -139,6 +144,16 @@ function renderRoute(route: string) {
 
 describe("IssuesBoard", () => {
   beforeEach(() => {
+    mockUseAuth.mockReturnValue({
+      canWrite: true,
+      mode: "token",
+      status: "authenticated",
+      principal: "mark",
+      role: "admin",
+      login: vi.fn(),
+      logout: vi.fn(),
+      refreshIdentity: vi.fn(),
+    });
     mockUseServers.mockReturnValue({ data: [{ id: "srv-1", name: "web-1" }] });
     mockUseIssues.mockReturnValue({
       data: { data: allIssues, has_more: false, next_cursor: null, warnings: [] },
@@ -260,6 +275,16 @@ describe("IssueDetail", () => {
   const linkedEvent = makeEvent({ id: "ev-linked", occurred_at: new Date(now - 5000_000).toISOString() });
 
   beforeEach(() => {
+    mockUseAuth.mockReturnValue({
+      canWrite: true,
+      mode: "token",
+      status: "authenticated",
+      principal: "mark",
+      role: "admin",
+      login: vi.fn(),
+      logout: vi.fn(),
+      refreshIdentity: vi.fn(),
+    });
     mockUseIssue.mockReturnValue({
       data: {
         issue: detailIssue,
@@ -327,6 +352,24 @@ describe("IssueDetail", () => {
     expect(screen.getByTestId("add-observation")).toBeInTheDocument();
     expect(screen.getByTestId("observation-input")).toBeInTheDocument();
     expect(screen.getByTestId("observation-submit")).toBeInTheDocument();
+  });
+
+  it("hides edit and observation actions for reader role", () => {
+    mockUseAuth.mockReturnValue({
+      canWrite: false,
+      mode: "token",
+      status: "authenticated",
+      principal: "readonly",
+      role: "reader",
+      login: vi.fn(),
+      logout: vi.fn(),
+      refreshIdentity: vi.fn(),
+    });
+
+    renderRoute("/issues/iss-det");
+    expect(screen.queryByTestId("edit-button")).not.toBeInTheDocument();
+    expect(screen.getByTestId("read-only-note")).toBeInTheDocument();
+    expect(screen.queryByTestId("observation-input")).not.toBeInTheDocument();
   });
 
   it("shows loading skeleton", () => {

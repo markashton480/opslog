@@ -49,7 +49,17 @@ services:
       dockerfile: dashboard/Dockerfile
       args:
         VITE_OPSLOG_API_URL: ${VITE_OPSLOG_API_URL:-/api/v1}
-        VITE_OPSLOG_TOKEN: ${VITE_OPSLOG_TOKEN:?VITE_OPSLOG_TOKEN must be set}
+        VITE_AUTH_MODE: ${VITE_AUTH_MODE:-oidc}
+        VITE_OPSLOG_TOKEN: ${VITE_OPSLOG_TOKEN:-}
+        VITE_OIDC_AUTHORITY: ${VITE_OIDC_AUTHORITY:-https://auth.lintel.digital/realms/lintel}
+        VITE_OIDC_CLIENT_ID: ${VITE_OIDC_CLIENT_ID:-opslog}
+        VITE_OIDC_REDIRECT_URI: ${VITE_OIDC_REDIRECT_URI:-https://opslog.lintel.digital/auth/callback}
+        VITE_OIDC_POST_LOGOUT_REDIRECT_URI: ${VITE_OIDC_POST_LOGOUT_REDIRECT_URI:-https://opslog.lintel.digital/}
+        VITE_OIDC_SCOPE: ${VITE_OIDC_SCOPE:-openid profile email}
+        VITE_OIDC_SILENT_REDIRECT_URI: ${VITE_OIDC_SILENT_REDIRECT_URI:-}
+    environment:
+      OPSLOG_CSP_CONNECT_EXTRA: ${OPSLOG_CSP_CONNECT_EXTRA:-https://auth.lintel.digital}
+      OPSLOG_CSP_FRAME_EXTRA: ${OPSLOG_CSP_FRAME_EXTRA:-https://auth.lintel.digital}
     ports:
       - "${LISTEN_ADDR:-127.0.0.1}:${DASHBOARD_PORT:-8601}:8601"
     depends_on:

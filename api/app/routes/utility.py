@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 from app.config import settings
 from app.db import connection
@@ -32,3 +32,15 @@ async def health() -> dict:
 @router.get("/categories")
 async def categories() -> dict:
     return {"data": categories_payload().model_dump(mode="json"), "warnings": []}
+
+
+@router.get("/me")
+async def me(request: Request) -> dict:
+    return {
+        "data": {
+            "principal": request.state.principal,
+            "role": request.state.role,
+            "auth_source": request.state.auth_source,
+        },
+        "warnings": list(request.state.warnings),
+    }

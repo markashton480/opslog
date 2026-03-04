@@ -8,11 +8,13 @@ import type {
   Issue,
   IssueDetail,
   IssueUpdate,
+  MeResponse,
   Server,
 } from "./types";
 
 const BASE_URL = import.meta.env.VITE_OPSLOG_API_URL || "/api/v1";
-const TOKEN = import.meta.env.VITE_OPSLOG_TOKEN || "";
+let tokenProvider: () => string | null = () => import.meta.env.VITE_OPSLOG_TOKEN || null;
+let unauthorizedHandler: (() => void | Promise<void>) | null = null;
 
 export type QueryValue = string | number | boolean | null | undefined;
 export type QueryParams = Record<string, QueryValue>;
@@ -27,6 +29,14 @@ export class ApiError extends Error {
     this.status = status;
     this.payload = payload;
   }
+}
+
+export function setTokenProvider(provider: () => string | null): void {
+  tokenProvider = provider;
+}
+
+export function setUnauthorizedHandler(handler: (() => void | Promise<void>) | null): void {
+  unauthorizedHandler = handler;
 }
 
 function formatErrorMessage(path: string, response: Response, payload: unknown): string {
@@ -69,7 +79,12 @@ function buildHeaders(extra?: HeadersInit): Headers {
   if (!headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
-  headers.set("Authorization", `Bearer ${TOKEN}`);
+  const token = tokenProvider();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  } else {
+    headers.delete("Authorization");
+  }
   return headers;
 }
 
@@ -94,6 +109,9 @@ async function request<T>(path: string, options?: RequestInit): Promise<ApiRespo
 
   const payload = await parseJson(response);
   if (!response.ok) {
+    if (response.status === 401 && unauthorizedHandler) {
+      await unauthorizedHandler();
+    }
     throw new ApiError(formatErrorMessage(path, response, payload), response.status, payload);
   }
 
@@ -108,6 +126,9 @@ async function requestList<T>(path: string, params?: QueryParams): Promise<ApiLi
 
   const payload = await parseJson(response);
   if (!response.ok) {
+    if (response.status === 401 && unauthorizedHandler) {
+      await unauthorizedHandler();
+    }
     throw new ApiError(formatErrorMessage(path, response, payload), response.status, payload);
   }
 
@@ -116,6 +137,7 @@ async function requestList<T>(path: string, params?: QueryParams): Promise<ApiLi
 
 export const api = {
   health: () => request<Health>("/health"),
+  me: () => request<MeResponse>("/me"),
   categories: () => request<CategoriesPayload>("/categories"),
   events: {
     list: (params?: QueryParams) => requestList<Event>("/events", params),
