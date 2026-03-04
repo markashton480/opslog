@@ -69,11 +69,11 @@ vi.mock("@/hooks/useCategories", () => ({
   }),
 }));
 
-function renderEventStream() {
+function renderEventStream(initialEntries?: string[]) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={initialEntries}>
         <EventStream />
       </MemoryRouter>
     </QueryClientProvider>,
@@ -112,7 +112,7 @@ describe("EventStream page", () => {
 });
 
 describe("EventStream pagination", () => {
-  it("calls loadMore when LOAD MORE is clicked", () => {
+  beforeEach(() => {
     vi.mocked(useEventsHook.useEvents).mockReturnValue({
       events: mockEvents,
       warnings: [],
@@ -122,11 +122,60 @@ describe("EventStream pagination", () => {
       loadMore: loadMoreSpy,
       pageCount: 1,
     } as any);
+  });
 
+  it("calls loadMore when LOAD MORE is clicked", () => {
     renderEventStream();
 
     fireEvent.click(screen.getByRole("button", { name: /LOAD MORE/ }));
     expect(loadMoreSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("EventStream client-side search", () => {
+  beforeEach(() => {
+    vi.mocked(useEventsHook.useEvents).mockReturnValue({
+      events: mockEvents,
+      warnings: [],
+      hasMore: true,
+      isLoading: false,
+      isError: false,
+      loadMore: vi.fn(),
+      pageCount: 1,
+    } as any);
+  });
+
+  it("filters events locally based on search text", () => {
+    renderEventStream();
+    const searchInput = screen.getByPlaceholderText(/Search summary/i);
+
+    fireEvent.change(searchInput, { target: { name: "search", value: "nginx" } });
+
+    // Only "Updated nginx config" should remain
+    expect(screen.queryByText("Deployed v1.2.3")).not.toBeInTheDocument();
+    expect(screen.getByText("Updated nginx config")).toBeInTheDocument();
+  });
+});
+
+describe("EventStream URL sync", () => {
+  beforeEach(() => {
+    vi.mocked(useEventsHook.useEvents).mockReturnValue({
+      events: mockEvents,
+      warnings: [],
+      hasMore: true,
+      isLoading: false,
+      isError: false,
+      loadMore: vi.fn(),
+      pageCount: 1,
+    } as any);
+  });
+
+  it("syncs filter values from search params", () => {
+    renderEventStream(["/events?server=lintel-prod-01&tag=urgent"]);
+
+    expect(screen.getByDisplayValue("PRODUCTION")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("urgent")).toBeInTheDocument();
+    expect(screen.getByText(/2 active filters/i)).toBeInTheDocument();
   });
 });
 

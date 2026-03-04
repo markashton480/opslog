@@ -77,9 +77,6 @@ function AppLayout() {
           <div className="hidden sm:block px-4 py-2 bg-white border-2 border-neo-gray-950 font-bold text-xs shadow-neo-sm">
             STATUS: <span className="text-green-600 animate-pulse">LIVE</span>
           </div>
-          <div className="hidden sm:block px-4 py-2 bg-white border-2 border-neo-gray-950 font-bold text-xs shadow-neo-sm">
-            USER: <span className="text-brand uppercase">mark</span>
-          </div>
         </div>
       </header>
 
@@ -129,7 +126,7 @@ function AppLayout() {
 
           <div className="mt-auto pt-6">
             <div className="p-4 bg-brand-light border-2 border-neo-gray-950 text-white text-xs font-black shadow-neo-sm italic uppercase tracking-widest">
-              OpsLog v0.3.0
+              OpsLog
             </div>
           </div>
         </aside>

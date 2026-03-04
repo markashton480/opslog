@@ -3,8 +3,9 @@ import { cleanup } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
 
 // Fix for undici/react-router AbortSignal issue in JSDOM
-if (typeof global.AbortSignal === "undefined") {
-  global.AbortSignal = new AbortController().signal.constructor as any;
+const g = globalThis as any;
+if (typeof g.AbortSignal === "undefined" && typeof g.AbortController !== "undefined") {
+  g.AbortSignal = new g.AbortController().signal.constructor as any;
 }
 
 afterEach(() => {
